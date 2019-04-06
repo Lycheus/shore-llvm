@@ -285,12 +285,6 @@ class ALU_rr<bits<7> funct7, bits<3> funct3, string opcodestr>
     : RVInstR<funct7, funct3, OPC_OP, (outs GPR:$rd), (ins GPR:$rs1, GPR:$rs2),
               opcodestr, "$rd, $rs1, $rs2">;
 
-//Kenny add instruction template for RISCVBound 
-let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
-class BND_rr<bits<7> funct7, bits<3> funct3, string opcodestr>
-    : RVInstR<funct7, funct3, OPC_JALR, (outs GPR:$rd), (ins GPR:$rs1, GPR:$rs2),
-              opcodestr, "$rd, $rs1, $rs2">;
-
 let hasSideEffects = 1, mayLoad = 0, mayStore = 0 in
 class CSR_ir<bits<3> funct3, string opcodestr>
     : RVInstI<funct3, OPC_SYSTEM, (outs GPR:$rd), (ins csr_sysreg:$imm12, GPR:$rs1),
@@ -317,6 +311,34 @@ let hasSideEffects = 1, mayLoad = 0, mayStore = 0 in
 class Priv<string opcodestr, bits<7> funct7>
     : RVInstR<funct7, 0b000, OPC_SYSTEM, (outs), (ins GPR:$rs1, GPR:$rs2),
               opcodestr, "">;
+
+// Kenny add instruction template for RISCVBound 
+
+let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
+class BND_rr<bits<7> funct7, bits<3> funct3, string opcodestr>
+    : RVInstR<funct7, funct3, OPC_JALR, (outs GPR:$rd), (ins GPR:$rs1, GPR:$rs2),
+              opcodestr, "$rd, $rs1, $rs2">;
+
+let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
+class BND_ri<bits<3> funct3, string opcodestr>
+    : RVInstI<funct3, OPC_JALR, (outs GPR:$rd), (ins GPR:$rs1, simm12:$imm12),
+              opcodestr, "$rd, $rs1, $imm12">;
+	      
+let hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
+class BND_Load_ri<bits<3> funct3, string opcodestr>
+    : RVInstI<funct3, OPC_LOAD_BND, (outs GPR:$rd), (ins GPR:$rs1, simm12:$imm12),
+              opcodestr, "$rd, ${imm12}(${rs1})">;
+
+// Operands for stores are in the order srcreg, base, offset rather than
+// reflecting the order these fields are specified in the instruction
+// encoding.
+let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
+class BND_Store_rri<bits<3> funct3, string opcodestr>
+    : RVInstS<funct3, OPC_STORE_BND, (outs),
+              (ins GPR:$rs2, GPR:$rs1, simm12:$imm12),
+              opcodestr, "$rs2, ${imm12}(${rs1})">;
+
+// Kenny end of bound template augmentation
 
 //===----------------------------------------------------------------------===//
 // Instructions
@@ -382,8 +404,32 @@ def SRA  : ALU_rr<0b0100000, 0b101, "sra">;
 def OR   : ALU_rr<0b0000000, 0b110, "or">;
 def AND  : ALU_rr<0b0000000, 0b111, "and">;
 
-// Kenny add the BNDR instruction bitfields
+// Kenny add the Bound instruction bitfields
+
+// These use OPC_JALR
 def BNDR : BND_rr<0b0000000, 0b001, "bndr">;
+def BNDI : BND_ri<0b100, "bndi">;
+def LBDU : BND_ri<0b101, "lbdu">; //might have bug because mayLoad = 0
+def LBDL : BND_ri<0b110, "lbdl">; //might have bug because mayLoad = 0
+def SBDU : BND_ri<0b010, "sbdu">; //might have bug because mayStore = 0
+def SBDL : BND_ri<0b011, "sbdl">; //might have bug because mayStore = 0
+
+// These use OPC_LOAD_BND
+def LB_B : BND_Load_ri<0b000, "lb.b">;
+def LH_B : BND_Load_ri<0b001, "lh.b">;
+def LW_B : BND_Load_ri<0b010, "lw.b">;
+def LD_B : BND_Load_ri<0b011, "ld.b">;
+def LBU_B : BND_Load_ri<0b100, "lbu.b">;
+def LHU_B : BND_Load_ri<0b101, "lhu.b">;
+def LWU_B : BND_Load_ri<0b110, "lwu.b">;
+
+// These use OPC_STORE_BND
+def SB_B : BND_Store_rri<0b100, "sb.b">;
+def SH_B : BND_Store_rri<0b101, "sh.b">;
+def SW_B : BND_Store_rri<0b110, "sw.b">;
+def SD_B : BND_Store_rri<0b111, "sd.b">;
+
+// Kenny end of Bound instruction bitfields
 
 let hasSideEffects = 1, mayLoad = 0, mayStore = 0 in {
 def FENCE : RVInstI<0b000, OPC_MISC_MEM, (outs),
