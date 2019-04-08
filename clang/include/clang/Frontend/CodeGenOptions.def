@@ -198,6 +198,7 @@ CODEGENOPT(SanitizeCoverageTraceDiv, 1, 0) ///< Enable div instruction tracing
                                            ///< in sanitizer coverage.
 CODEGENOPT(SanitizeCoverageTraceGep, 1, 0) ///< Enable GEP instruction tracing
                                            ///< in sanitizer coverage.
+CODEGENOPT(SoftBoundCETS, 1, 0) ///< SoftBoundCETS pointer-based checking.
 CODEGENOPT(SanitizeCoverage8bitCounters, 1, 0) ///< Use 8-bit frequency counters
                                                ///< in sanitizer coverage.
 CODEGENOPT(SanitizeCoverageTracePC, 1, 0) ///< Enable PC tracing

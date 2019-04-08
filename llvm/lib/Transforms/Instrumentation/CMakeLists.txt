@@ -13,6 +13,9 @@ add_llvm_library(LLVMInstrumentation
   PGOMemOPSizeOpt.cpp
   SanitizerCoverage.cpp
   ThreadSanitizer.cpp
+  SoftBoundCETS.cpp
+  FixByValAttributes.cpp
+  InitializeSoftBoundCETS.cpp
   EfficiencySanitizer.cpp
   HWAddressSanitizer.cpp
 

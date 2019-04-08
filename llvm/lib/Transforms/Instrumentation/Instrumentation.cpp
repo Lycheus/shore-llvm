@@ -70,6 +70,9 @@ void llvm::initializeInstrumentation(PassRegistry &Registry) {
   initializeHWAddressSanitizerPass(Registry);
   initializeThreadSanitizerPass(Registry);
   initializeSanitizerCoverageModulePass(Registry);
+  initializeSoftBoundCETSPass(Registry);
+  initializeInitializeSoftBoundCETSPass(Registry);
+  initializeFixByValAttributesPass(Registry);
   initializeDataFlowSanitizerPass(Registry);
   initializeEfficiencySanitizerPass(Registry);
 }

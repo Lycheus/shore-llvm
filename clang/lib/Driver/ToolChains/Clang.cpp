@@ -2361,6 +2361,10 @@ static void RenderSSPOptions(const ToolChain &TC, const ArgList &Args,
     CmdArgs.push_back(Args.MakeArgString(Twine(StackProtectorLevel)));
   }
 
+  if(Args.getLastArg(options::OPT_fsoftboundcets)){
+    CmdArgs.push_back("-fsoftboundcets");
+  }
+  
   // --param ssp-buffer-size=
   for (const Arg *A : Args.filtered(options::OPT__param)) {
     StringRef Str(A->getValue());

@@ -527,6 +527,8 @@ static bool ParseCodeGenArgs(CodeGenOptions &Opts, ArgList &Args, InputKind IK,
   Opts.setInlining((Opts.OptimizationLevel == 0)
                        ? CodeGenOptions::OnlyAlwaysInlining
                        : CodeGenOptions::NormalInlining);
+
+  Opts.SoftBoundCETS = Args.hasArg(OPT_fsoftboundcets);
   // Explicit inlining flags can disable some or all inlining even at
   // optimization levels above zero.
   if (Arg *InlineArg = Args.getLastArg(
