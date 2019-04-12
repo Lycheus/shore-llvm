@@ -203,14 +203,14 @@ TEST(JSONTest, UTF8) {
     EXPECT_EQ(fixUTF8(Valid), Valid);
   }
   for (auto Invalid : std::vector<std::pair<const char *, const char *>>{
-           {"lone trailing \x81\x82 bytes", "lone trailing �� bytes"},
-           {"missing trailing \xD0 bytes", "missing trailing � bytes"},
-           {"truncated character \xD0", "truncated character �"},
+           {"lone trailing \x81\x82 bytes", "lone trailing bytes"},
+           {"missing trailing \xD0 bytes", "missing trailing bytes"},
+           {"truncated character \xD0", "truncated character"},
            {"not \xC1\x80 the \xE0\x9f\xBF shortest \xF0\x83\x83\x83 encoding",
-            "not �� the ��� shortest ���� encoding"},
-           {"too \xF9\x80\x80\x80\x80 long", "too ����� long"},
+            "not the shortest encoding"},
+           {"too \xF9\x80\x80\x80\x80 long", "too long"},
            {"surrogate \xED\xA0\x80 invalid \xF4\x90\x80\x80",
-            "surrogate ��� invalid ����"}}) {
+            "surrogate invalid"}}) {
     EXPECT_FALSE(isUTF8(Invalid.first)) << Invalid.first;
     EXPECT_EQ(fixUTF8(Invalid.first), Invalid.second);
   }

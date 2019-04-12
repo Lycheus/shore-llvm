@@ -79,7 +79,7 @@ class InitializeSoftBoundCETS: public ModulePass {
     // printf ("InitializeSoftBoundCETS::contructor::temporal_safety = %d\n", temporal_safety);
   }
   
-  const char* getPassName() const { return "InitializeSoftBoundCETS";}
+  StringRef getPassName() const { return "InitializeSoftBoundCETS";}
 };
 
 
