@@ -2883,7 +2883,8 @@ SoftBoundCETS::getAssociatedBase(Value* pointer_operand) {
   }
 
   if(!m_pointer_base.count(pointer_operand)){
-    pointer_operand->dump();
+    //pointer_operand->dump(); //kenny dump is deprecated on LLVM 5.0 release build
+    pointer_operand->print(dbgs());
   }
   assert(m_pointer_base.count(pointer_operand) && 
          "Base absent. Try compiling with -simplifycfg option?");
@@ -2942,7 +2943,8 @@ SoftBoundCETS::getAssociatedKey(Value* pointer_operand) {
   }
 
   if(!m_pointer_key.count(pointer_operand)){
-    pointer_operand->dump();
+    //pointer_operand->dump(); //kenny dump is deprecated on LLVM 5.0 release build
+    pointer_operand->print(dbgs());
   }
   assert(m_pointer_key.count(pointer_operand) && 
          "Key absent. Try compiling with -simplifycfg option?");
@@ -2972,7 +2974,8 @@ SoftBoundCETS::getAssociatedLock(Value* pointer_operand, Value* func_lock){
   }
 
   if(!m_pointer_lock.count(pointer_operand)){
-    pointer_operand->dump();
+    //pointer_operand->dump(); //kenny dump is deprecated on LLVM 5.0 release build
+    pointer_operand->print(dbgs());
   }
   assert(m_pointer_lock.count(pointer_operand) && 
          "Lock absent. Try compiling with -simplifycfg option?");
