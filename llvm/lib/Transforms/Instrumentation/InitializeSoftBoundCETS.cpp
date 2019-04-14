@@ -79,7 +79,7 @@ class InitializeSoftBoundCETS: public ModulePass {
     // printf ("InitializeSoftBoundCETS::contructor::temporal_safety = %d\n", temporal_safety);
   }
   
-  StringRef getPassName() const { return "InitializeSoftBoundCETS";}
+  StringRef getPassName() const override { return "InitializeSoftBoundCETS";}
 };
 
 
@@ -116,181 +116,128 @@ static RegisterPass<InitializeSoftBoundCETS> P
 #endif
 
 void InitializeSoftBoundCETS:: constructShadowStackHandlers(Module & module){
-
   Type* VoidTy = Type::getVoidTy(module.getContext());
-  Type* 
-    VoidPtrTy = PointerType::getUnqual(Type::getInt8Ty(module.getContext()));
+  Type* VoidPtrTy = PointerType::getUnqual(Type::getInt8Ty(module.getContext()));
   Type* SizeTy = Type::getInt64Ty(module.getContext());
-  
   Type* Int32Ty = Type::getInt32Ty(module.getContext());
-  module.getOrInsertFunction("__softboundcets_allocate_shadow_stack_space", 
-                             VoidTy, Int32Ty, NULL);
-  module.getOrInsertFunction("__softboundcets_deallocate_shadow_stack_space", 
-                             VoidTy, NULL);
 
+  
+  module.getOrInsertFunction("__softboundcets_allocate_shadow_stack_space", VoidTy, Int32Ty);//
+  module.getOrInsertFunction("__softboundcets_deallocate_shadow_stack_space", VoidTy);//
+  
   if(spatial_safety){
-    module.getOrInsertFunction("__softboundcets_load_base_shadow_stack", 
-                               VoidPtrTy, Int32Ty, NULL);
-    module.getOrInsertFunction("__softboundcets_load_bound_shadow_stack", 
-                             VoidPtrTy, Int32Ty, NULL);
+    module.getOrInsertFunction("__softboundcets_load_base_shadow_stack", VoidPtrTy, Int32Ty);
+    module.getOrInsertFunction("__softboundcets_load_bound_shadow_stack", VoidPtrTy, Int32Ty);
   }
 
   if(temporal_safety){
-    module.getOrInsertFunction("__softboundcets_load_key_shadow_stack", 
-                               SizeTy, Int32Ty, NULL);
-    module.getOrInsertFunction("__softboundcets_load_lock_shadow_stack", 
-                               VoidPtrTy, Int32Ty, NULL);
+    module.getOrInsertFunction("__softboundcets_load_key_shadow_stack", SizeTy, Int32Ty);
+    module.getOrInsertFunction("__softboundcets_load_lock_shadow_stack", VoidPtrTy, Int32Ty);
   }
 
   if(spatial_safety){
-    module.getOrInsertFunction("__softboundcets_store_base_shadow_stack", 
-                               VoidTy, VoidPtrTy, Int32Ty, NULL);
-    module.getOrInsertFunction("__softboundcets_store_bound_shadow_stack", 
-                               VoidTy, VoidPtrTy, Int32Ty, NULL);
+    module.getOrInsertFunction("__softboundcets_store_base_shadow_stack", VoidTy, VoidPtrTy, Int32Ty);//
+    module.getOrInsertFunction("__softboundcets_store_bound_shadow_stack", VoidTy, VoidPtrTy, Int32Ty);
   }
-
+  
   if(temporal_safety){
-    module.getOrInsertFunction("__softboundcets_store_key_shadow_stack", 
-                               VoidTy, SizeTy, Int32Ty, NULL);
-    module.getOrInsertFunction("__softboundcets_store_lock_shadow_stack", 
-                               VoidTy, VoidPtrTy, Int32Ty, NULL);
+    module.getOrInsertFunction("__softboundcets_store_key_shadow_stack", VoidTy, SizeTy, Int32Ty);
+    module.getOrInsertFunction("__softboundcets_store_lock_shadow_stack", VoidTy, VoidPtrTy, Int32Ty);
   }
-
+  
 }
 
 void InitializeSoftBoundCETS:: constructMetadataHandlers(Module & module){
 
   Type* VoidTy = Type::getVoidTy(module.getContext());
-  Type* 
-    VoidPtrTy = PointerType::getUnqual(Type::getInt8Ty(module.getContext()));
+  Type* VoidPtrTy = PointerType::getUnqual(Type::getInt8Ty(module.getContext()));
   Type* SizeTy = Type::getInt64Ty(module.getContext());
-  
   Type* Int32Ty = Type::getInt32Ty(module.getContext());
-
-  module.getOrInsertFunction("__softboundcets_introspect_metadata", 
-                             VoidTy, VoidPtrTy, VoidPtrTy, Int32Ty, NULL);
-  module.getOrInsertFunction("__softboundcets_copy_metadata", 
-                             VoidTy, VoidPtrTy, VoidPtrTy, SizeTy, NULL);
+  
+  module.getOrInsertFunction("__softboundcets_introspect_metadata", VoidTy, VoidPtrTy, VoidPtrTy, Int32Ty);//
+  module.getOrInsertFunction("__softboundcets_copy_metadata", VoidTy, VoidPtrTy, VoidPtrTy, SizeTy);
 
   Type* PtrVoidPtrTy = PointerType::getUnqual(VoidPtrTy);
   Type* PtrSizeTy = PointerType::getUnqual(SizeTy);
   
   // parameterize by spatial and temporal
 
+  
 
   if(spatial_safety && temporal_safety){
 
-    module.getOrInsertFunction("__softboundcets_metadata_map",
-                               VoidPtrTy, VoidPtrTy, NULL);
+    module.getOrInsertFunction("__softboundcets_metadata_map", VoidPtrTy, VoidPtrTy);
     
-    module.getOrInsertFunction("__softboundcets_metadata_load_base",
-                               VoidPtrTy, VoidPtrTy, NULL);
+    module.getOrInsertFunction("__softboundcets_metadata_load_base", VoidPtrTy, VoidPtrTy);
 
-    module.getOrInsertFunction("__softboundcets_metadata_load_bound",
-                               VoidPtrTy, VoidPtrTy, NULL);
+    module.getOrInsertFunction("__softboundcets_metadata_load_bound", VoidPtrTy, VoidPtrTy);
 
-    module.getOrInsertFunction("__softboundcets_metadata_load_key",
-                               SizeTy, VoidPtrTy, NULL);
+    module.getOrInsertFunction("__softboundcets_metadata_load_key", SizeTy, VoidPtrTy);
 
-    module.getOrInsertFunction("__softboundcets_metadata_load_lock",
-                               VoidPtrTy, VoidPtrTy, NULL);
-
-    module.getOrInsertFunction("__softboundcets_metadata_load_vector", 
-                               VoidTy, VoidPtrTy, PtrVoidPtrTy, PtrVoidPtrTy, 
-                               PtrSizeTy, PtrVoidPtrTy, Int32Ty, NULL);
-
-    module.getOrInsertFunction("__softboundcets_metadata_store_vector", 
-                               VoidTy, VoidPtrTy, VoidPtrTy, 
-                               VoidPtrTy, SizeTy, VoidPtrTy, Int32Ty, NULL);
-
+    module.getOrInsertFunction("__softboundcets_metadata_load_lock", VoidPtrTy, VoidPtrTy);
     
+    module.getOrInsertFunction("__softboundcets_metadata_load_vector", VoidTy, VoidPtrTy, PtrVoidPtrTy, PtrVoidPtrTy, PtrSizeTy, PtrVoidPtrTy, Int32Ty);//
+
+    module.getOrInsertFunction("__softboundcets_metadata_store_vector", VoidTy, VoidPtrTy, VoidPtrTy, VoidPtrTy, SizeTy, VoidPtrTy, Int32Ty);
     
-    module.getOrInsertFunction("__softboundcets_metadata_load", 
-                               VoidTy, VoidPtrTy, PtrVoidPtrTy, PtrVoidPtrTy, 
-                               PtrSizeTy, PtrVoidPtrTy, NULL);
+    module.getOrInsertFunction("__softboundcets_metadata_load", VoidTy, VoidPtrTy, PtrVoidPtrTy, PtrVoidPtrTy, PtrSizeTy, PtrVoidPtrTy);//
 
-    module.getOrInsertFunction("__softboundcets_metadata_store", 
-                               VoidTy, VoidPtrTy, VoidPtrTy, 
-                               VoidPtrTy, SizeTy, VoidPtrTy, NULL);
+    module.getOrInsertFunction("__softboundcets_metadata_store", VoidTy, VoidPtrTy, VoidPtrTy, VoidPtrTy, SizeTy, VoidPtrTy);
 
-    module.getOrInsertFunction("__softboundcets_memcopy_check",
-                               VoidTy, VoidPtrTy, VoidPtrTy, SizeTy, 
-                               VoidPtrTy, VoidPtrTy, VoidPtrTy, VoidPtrTy,
-                               SizeTy, VoidPtrTy, SizeTy, VoidPtrTy, NULL);
+    module.getOrInsertFunction("__softboundcets_memcopy_check", VoidTy, VoidPtrTy, VoidPtrTy, SizeTy, VoidPtrTy, VoidPtrTy, VoidPtrTy, VoidPtrTy, SizeTy, VoidPtrTy, SizeTy, VoidPtrTy);//
 
-    module.getOrInsertFunction("__softboundcets_memset_check",
-                               VoidTy, VoidPtrTy, SizeTy, 
-                               VoidPtrTy, VoidPtrTy, SizeTy, VoidPtrTy, NULL);
-
+    module.getOrInsertFunction("__softboundcets_memset_check", VoidTy, VoidPtrTy, SizeTy, VoidPtrTy, VoidPtrTy, SizeTy, VoidPtrTy);
+	
     
   }
-  
+
   if(spatial_safety && !temporal_safety){
-    module.getOrInsertFunction("__softboundcets_metadata_load",
-                               VoidTy, VoidPtrTy, PtrVoidPtrTy, PtrVoidPtrTy,
-                               NULL);
+    module.getOrInsertFunction("__softboundcets_metadata_load", VoidTy, VoidPtrTy, PtrVoidPtrTy, PtrVoidPtrTy);
 
-    module.getOrInsertFunction("__softboundcets_metadata_store", 
-                               VoidTy, VoidPtrTy, VoidPtrTy, 
-                               VoidPtrTy, NULL);
+    module.getOrInsertFunction("__softboundcets_metadata_store", VoidTy, VoidPtrTy, VoidPtrTy, VoidPtrTy);
 
-    module.getOrInsertFunction("__softboundcets_memcopy_check",
-                               VoidTy, VoidPtrTy, VoidPtrTy, SizeTy, 
-                               VoidPtrTy, VoidPtrTy, VoidPtrTy, VoidPtrTy, NULL);
+    module.getOrInsertFunction("__softboundcets_memcopy_check", VoidTy, VoidPtrTy, VoidPtrTy, SizeTy, VoidPtrTy, VoidPtrTy, VoidPtrTy, VoidPtrTy);//
 
-    module.getOrInsertFunction("__softboundcets_memset_check",
-                               VoidTy, VoidPtrTy,SizeTy, 
-                               VoidPtrTy, VoidPtrTy, NULL);
+    module.getOrInsertFunction("__softboundcets_memset_check", VoidTy, VoidPtrTy,SizeTy, VoidPtrTy, VoidPtrTy);//
 
     
   }
 
   if(!spatial_safety && temporal_safety){
-    module.getOrInsertFunction("__softboundcets_metadata_load",
-                               VoidTy, VoidPtrTy, PtrSizeTy, PtrVoidPtrTy, NULL);
+    module.getOrInsertFunction("__softboundcets_metadata_load", VoidTy, VoidPtrTy, PtrSizeTy, PtrVoidPtrTy);
 
     
-    module.getOrInsertFunction("__softboundcets_metadata_store", 
-                               VoidTy, VoidPtrTy,SizeTy, VoidPtrTy, NULL);
+    module.getOrInsertFunction("__softboundcets_metadata_store", VoidTy, VoidPtrTy,SizeTy, VoidPtrTy);
 
-    module.getOrInsertFunction("__softboundcets_memcopy_check",
-                               VoidTy, VoidPtrTy, VoidPtrTy, SizeTy, 
-                               SizeTy, VoidPtrTy, SizeTy, VoidPtrTy, NULL);
+    module.getOrInsertFunction("__softboundcets_memcopy_check", VoidTy, VoidPtrTy, VoidPtrTy, SizeTy, SizeTy, VoidPtrTy, SizeTy, VoidPtrTy);
 
-    module.getOrInsertFunction("__softboundcets_memset_check",
-                               VoidTy, VoidPtrTy,SizeTy, 
-                               SizeTy, VoidPtrTy, NULL);
-
+    module.getOrInsertFunction("__softboundcets_memset_check", VoidTy, VoidPtrTy,SizeTy, SizeTy, VoidPtrTy);
+	
   }
 
 
-  module.getOrInsertFunction("__softboundcets_get_global_lock", 
-                             VoidPtrTy, NULL);
+  module.getOrInsertFunction("__softboundcets_get_global_lock", VoidPtrTy);
 
-  module.getOrInsertFunction("__softboundcets_stack_memory_allocation", 
-                             VoidTy, PtrVoidPtrTy, 
-                             PtrSizeTy, NULL);
+  module.getOrInsertFunction("__softboundcets_stack_memory_allocation", VoidTy, PtrVoidPtrTy, PtrSizeTy);
 
-  module.getOrInsertFunction("__softboundcets_stack_memory_deallocation", 
-                             VoidTy, SizeTy, NULL);
+  module.getOrInsertFunction("__softboundcets_stack_memory_deallocation", VoidTy, SizeTy);
 
-  module.getOrInsertFunction("__softboundcets_spatial_call_dereference_check",
-                             VoidTy, VoidPtrTy, VoidPtrTy, VoidPtrTy, NULL);
+  module.getOrInsertFunction("__softboundcets_spatial_call_dereference_check", VoidTy, VoidPtrTy, VoidPtrTy, VoidPtrTy);
 
 
   Type* size_ty = Type::getInt64Ty(module.getContext());
 
   PointerType* sizet_ptr_ty = PointerType::getUnqual(Type::getInt64Ty(module.getContext()));
 
-  module.getOrInsertFunction("__softboundcets_print_metadata", VoidTy, VoidPtrTy, VoidPtrTy, VoidPtrTy, size_ty, sizet_ptr_ty, NULL);
+  module.getOrInsertFunction("__softboundcets_print_metadata", VoidTy, VoidPtrTy, VoidPtrTy, VoidPtrTy, size_ty, sizet_ptr_ty);
 
   
-  module.getOrInsertFunction("__softboundcets_dummy", VoidTy, NULL);
+  module.getOrInsertFunction("__softboundcets_dummy", VoidTy);
 
   Type* bool_ty = Type::getInt1Ty(module.getContext());
 
-  module.getOrInsertFunction("__softboundcets_intermediate", VoidTy, bool_ty, bool_ty, bool_ty, size_ty, NULL);
-
+  module.getOrInsertFunction("__softboundcets_intermediate", VoidTy, bool_ty, bool_ty, bool_ty, size_ty);
+  
 }
 
 void InitializeSoftBoundCETS:: constructCheckHandlers(Module & module){
@@ -299,47 +246,47 @@ void InitializeSoftBoundCETS:: constructCheckHandlers(Module & module){
 
   Type* void_ptr_ty = PointerType::getUnqual(Type::getInt8Ty(module.getContext()));
   Type* size_ty = Type::getInt64Ty(module.getContext());
-
+  
   module.getOrInsertFunction("__softboundcets_spatial_load_dereference_check",
                              void_ty, void_ptr_ty, void_ptr_ty, 
-                             void_ptr_ty, size_ty, NULL);
+                             void_ptr_ty, size_ty);
 
   module.getOrInsertFunction("__softboundcets_spatial_store_dereference_check", 
                              void_ty, void_ptr_ty, void_ptr_ty, 
-                             void_ptr_ty, size_ty, NULL);
+                             void_ptr_ty, size_ty);
 
   if(spatial_safety && temporal_safety){
   
     module.getOrInsertFunction("__softboundcets_temporal_load_dereference_check", 
                                void_ty, void_ptr_ty, size_ty, 
-                               void_ptr_ty, void_ptr_ty, NULL);
+                               void_ptr_ty, void_ptr_ty);
     
     module.getOrInsertFunction("__softboundcets_temporal_store_dereference_check", 
                                void_ty, void_ptr_ty, size_ty, 
-                               void_ptr_ty, void_ptr_ty, NULL);
+                               void_ptr_ty, void_ptr_ty);
   }
 
   if(!spatial_safety && temporal_safety){
 
     module.getOrInsertFunction("__softboundcets_temporal_load_dereference_check", 
-                               void_ty, void_ptr_ty, size_ty, NULL);
+                               void_ty, void_ptr_ty, size_ty);
     
     module.getOrInsertFunction("__softboundcets_temporal_store_dereference_check", 
-                               void_ty, void_ptr_ty, size_ty, NULL);
+                               void_ty, void_ptr_ty, size_ty);
 
 
   }
-
+  
   Function* global_init = (Function *) module.getOrInsertFunction("__softboundcets_global_init", 
-                                                                  void_ty, NULL);
-
+                                                                  void_ty);
+  
   global_init->setDoesNotThrow();
   global_init->setLinkage(GlobalValue::InternalLinkage);
 
   BasicBlock* BB = BasicBlock::Create(module.getContext(), 
                                       "entry", global_init);
   
-  Function* softboundcets_init = (Function*) module.getOrInsertFunction("__softboundcets_init", void_ty, Type::getInt32Ty(module.getContext()), NULL);
+  Function* softboundcets_init = (Function*) module.getOrInsertFunction("__softboundcets_init", void_ty, Type::getInt32Ty(module.getContext()));
 
   
   SmallVector<Value*, 8> args;

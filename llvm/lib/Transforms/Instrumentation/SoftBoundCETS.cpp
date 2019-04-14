@@ -473,7 +473,7 @@ class SoftBoundCETS: public ModulePass {
     //    initializeSoftBoundCETS(*PassRegistry::getPassRegistry());
 
   }
-  const char* getPassName() const override { return " SoftBoundCETS";}
+  StringRef getPassName() const override { return " SoftBoundCETS";}
 
 
   void getAnalysisUsage(AnalysisUsage& au) const override {
@@ -1070,9 +1070,16 @@ SoftBoundCETS::addMemoryAllocationCall(Function* func,
   SmallVector<Value*, 8> args;
   Instruction* first_inst_func = cast<Instruction>(func->begin()->begin());
   AllocaInst* lock_alloca = new AllocaInst(m_void_ptr_type, 
-                                           "lock_alloca", 
-                                           first_inst_func);
-  AllocaInst* key_alloca = new AllocaInst(Type::getInt64Ty(func->getContext()), 
+											m_void_ptr_type->getPointerAddressSpace(), //kenny add for addrspace, previous LLVM version dont have this aug.
+                                           "lock_alloca", first_inst_func);
+  /*kenny Debugging purpose*/
+  printf("kenny print m_void_ptr_type->getPointerAddressSpace() value: %d  "
+         "<-- The value shall be 0\n",
+         m_void_ptr_type->getPointerAddressSpace());
+  /* end of debug*/
+  AllocaInst *key_alloca =
+      new AllocaInst(Type::getInt64Ty(func->getContext()),
+                     Type::getInt64Ty(func->getContext())->getPointerAddressSpace(), //kenny add for addrspace, previous LLVM version dont have this aug.
                                           "key_alloca", first_inst_func);
   args.push_back(lock_alloca);
   args.push_back(key_alloca);
@@ -1137,15 +1144,18 @@ void SoftBoundCETS::transformMain(Module& module) {
   const FunctionType* fty = main_func->getFunctionType();
   std::vector<Type*> params;
 
-  SmallVector<AttributeSet, 8> param_attrs_vec;
-  const AttributeSet& pal = main_func->getAttributes();
+  //SmallVector<AttributeSet, 8> param_attrs_vec; //kenny update AttributeSet into AttributeList
+  SmallVector<AttributeList, 8> param_attrs_vec;
+  const AttributeList& pal = main_func->getAttributes();
 
   //
   // Get the attributes of the return value
   //
 
-  if(pal.hasAttributes(AttributeSet::ReturnIndex))
-    param_attrs_vec.push_back(AttributeSet::get(main_func->getContext(), pal.getRetAttributes()));
+  //if(pal.hasAttributes(AttributeList::ReturnIndex)) //kenny update AttributeSet into AttributeList
+    //param_attrs_vec.push_back(AttributeList::get(main_func->getContext(), pal.getRetAttributes()));
+    if (pal.hasAttributes(AttributeList::ReturnIndex))
+    param_attrs_vec.push_back(AttributeList::get(main_func->getContext(), AttributeList::ReturnIndex, pal.getRetAttributes()));
 
   // Get the attributes of the arguments 
   int arg_index = 1;
@@ -1154,11 +1164,18 @@ void SoftBoundCETS::transformMain(Module& module) {
       i != e; ++i, arg_index++) {
     params.push_back(i->getType());
 
-    AttributeSet attrs = pal.getParamAttributes(arg_index);
+    AttributeSet attrs = pal.getParamAttributes(arg_index); //kenny leave it along, this is the only place which AttributeSet mean the same as back in LLVM3.9
 
+	// kenny same fix as FixByValAttributes.cpp. Because the new AttributeSet represent the single attribute of an augment, and we already select it using getParamAttributes(arg_index)
+    /*
     if(attrs.hasAttributes(arg_index)){
       AttrBuilder B(attrs, arg_index);
       param_attrs_vec.push_back(AttributeSet::get(main_func->getContext(), params.size(), B));
+	*/
+    if (attrs.hasAttributes()) {
+      AttrBuilder B(attrs);
+      param_attrs_vec.push_back(
+      AttributeList::get(main_func->getContext(), params.size(), B));
     }
   }
 
@@ -1171,7 +1188,8 @@ void SoftBoundCETS::transformMain(Module& module) {
 
   // set the new function attributes 
   new_func->copyAttributesFrom(main_func);
-  new_func->setAttributes(AttributeSet::get(main_func->getContext(), param_attrs_vec));
+  //new_func->setAttributes(AttributeSet::get(main_func->getContext(), param_attrs_vec)); 
+  new_func->setAttributes(AttributeList::get(main_func->getContext(), param_attrs_vec)); //kenny update AttributeSet into AttributeList
     
   main_func->getParent()->getFunctionList().insert(main_func->getIterator(), new_func);
   main_func->replaceAllUsesWith(new_func);
@@ -4067,7 +4085,8 @@ void SoftBoundCETS:: renameFunctionName(Function* func,
   if(func->getName() == "softboundcets_pseudo_main")
     return;
 
-  SmallVector<AttributeSet, 8> param_attrs_vec;
+  //SmallVector<AttributeSet, 8> param_attrs_vec; //kenny replace AttributeSet to AttributeList for new LLVM
+  SmallVector<AttributeList, 8> param_attrs_vec;
 
 #if 0
 
@@ -4091,7 +4110,8 @@ void SoftBoundCETS:: renameFunctionName(Function* func,
   FunctionType* nfty = FunctionType::get(ret_type, params, fty->isVarArg());
   Function* new_func = Function::Create(nfty, func->getLinkage(), transformFunctionName(func->getName()));
   new_func->copyAttributesFrom(func);
-  new_func->setAttributes(AttributeSet::get(func->getContext(), param_attrs_vec));
+  //new_func->setAttributes(AttributeSet::get(func->getContext(), param_attrs_vec)); //kenny replace AttributeSet to AttributeList for new LLVM
+  new_func->setAttributes(AttributeList::get(func->getContext(), param_attrs_vec));
   func->getParent()->getFunctionList().insert(func->getIterator(), new_func);
     
   if(!external) {
@@ -5120,11 +5140,11 @@ void SoftBoundCETS::insertMetadataLoad(LoadInst* load_inst){
   /* address of pointer being pushed */
   args.push_back(pointer_operand_bitcast);
     
-
+  // kenny update the following AllocaInst to match the updated LLVM parameter for addrspace address space
   if(spatial_safety){
     
-    base_alloca = new AllocaInst(m_void_ptr_type, "base.alloca", first_inst_func);
-    bound_alloca = new AllocaInst(m_void_ptr_type, "bound.alloca", first_inst_func);
+    base_alloca = new AllocaInst(m_void_ptr_type, m_void_ptr_type->getPointerAddressSpace(), "base.alloca", first_inst_func);
+    bound_alloca = new AllocaInst(m_void_ptr_type, m_void_ptr_type->getPointerAddressSpace(), "bound.alloca", first_inst_func);
   
     /* base */
     args.push_back(base_alloca);
@@ -5134,8 +5154,8 @@ void SoftBoundCETS::insertMetadataLoad(LoadInst* load_inst){
 
   if(temporal_safety){
     
-    key_alloca = new AllocaInst(Type::getInt64Ty(load_inst->getType()->getContext()), "key.alloca", first_inst_func);
-    lock_alloca = new AllocaInst(m_void_ptr_type, "lock.alloca", first_inst_func);
+    key_alloca = new AllocaInst(Type::getInt64Ty(load_inst->getType()->getContext()), Type::getInt64Ty(load_inst->getType()->getContext())->getPointerAddressSpace(), "key.alloca", first_inst_func);
+    lock_alloca = new AllocaInst(m_void_ptr_type, m_void_ptr_type->getPointerAddressSpace(), "lock.alloca", first_inst_func);
 
     args.push_back(key_alloca);
     args.push_back(lock_alloca);
@@ -5223,16 +5243,16 @@ void SoftBoundCETS::handleLoad(LoadInst* load_inst) {
       
       args.push_back(pointer_operand_bitcast);
       
-      base_alloca = new AllocaInst(m_void_ptr_type, "base.alloca", first_inst_func);
-      bound_alloca = new AllocaInst(m_void_ptr_type, "bound.alloca", first_inst_func);
+      base_alloca = new AllocaInst(m_void_ptr_type, m_void_ptr_type->getPointerAddressSpace(), "base.alloca", first_inst_func);
+      bound_alloca = new AllocaInst(m_void_ptr_type, m_void_ptr_type->getPointerAddressSpace(), "bound.alloca", first_inst_func);
 	 
       /* base */
       args.push_back(base_alloca);
       /* bound */
       args.push_back(bound_alloca);
 
-      key_alloca = new AllocaInst(Type::getInt64Ty(load_inst->getType()->getContext()), "key.alloca", first_inst_func);
-      lock_alloca = new AllocaInst(m_void_ptr_type, "lock.alloca", first_inst_func);
+      key_alloca = new AllocaInst(Type::getInt64Ty(load_inst->getType()->getContext()), Type::getInt64Ty(load_inst->getType()->getContext())->getPointerAddressSpace(), "key.alloca", first_inst_func);
+      lock_alloca = new AllocaInst(m_void_ptr_type, m_void_ptr_type->getPointerAddressSpace(), "lock.alloca", first_inst_func);
       
       args.push_back(key_alloca);
       args.push_back(lock_alloca);

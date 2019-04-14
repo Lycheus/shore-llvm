@@ -109,7 +109,7 @@ class FixByValAttributes: public ModulePass{
   static char ID;
  FixByValAttributes(): ModulePass(ID){
   }
-  const char* getPassName() const { return "FixByValAttributes";}
+  StringRef getPassName() const { return "FixByValAttributes"; }
   
 };
 
@@ -260,12 +260,17 @@ bool FixByValAttributes:: transformFunction(Function* func){
   const FunctionType* fty = func->getFunctionType();
   std::vector<Type*> params;
   
-  SmallVector<AttributeSet, 8> param_attrs_vec;
+  //SmallVector<AttributeSet, 8> param_attrs_vec; //kenny update AttributeSet into AttributeList
+  SmallVector<AttributeList, 8> param_attrs_vec;
 
-  const AttributeSet& pal = func->getAttributes();
+  //const AttributeSet& pal = func->getAttributes(); //kenny update AttributeSet into AttributeList
+  const AttributeList &pal = func->getAttributes();
 
-  if(pal.hasAttributes(AttributeSet::ReturnIndex))
-    param_attrs_vec.push_back(AttributeSet::get(func->getContext(), pal.getRetAttributes()));
+  //if(pal.hasAttributes(AttributeSet::ReturnIndex)) //kenny update AttributeSet into AttributeList
+  if (pal.hasAttributes(AttributeList::ReturnIndex)) 
+   // param_attrs_vec.push_back(AttributeSet::get(func->getContext(), pal.getRetAttributes()));
+    param_attrs_vec.push_back(AttributeList::get(func->getContext(), AttributeList::ReturnIndex, pal.getRetAttributes()));
+	//kenny replace the AttributeSet::get (LLVMContext &C, const AttrBuilder &B) into AttributeList::get(LLVMContext &C, unsigned Index, const AttrBuilder &B)
 
   int arg_index = 1;
   for(Function::arg_iterator i = func->arg_begin(), e = func->arg_end();
@@ -273,14 +278,18 @@ bool FixByValAttributes:: transformFunction(Function* func){
     Argument* arg = dyn_cast<Argument>(i);
  
     params.push_back(i->getType());
-    AttributeSet attrs = pal.getParamAttributes(arg_index);
-    if(attrs.hasAttributes(arg_index)){
+
+    AttributeSet attrs = pal.getParamAttributes(arg_index); //kenny leave it along, this is the only place which AttributeSet mean the same as back in LLVM3.9
+    //if(attrs.hasAttributes(arg_index)){
+    if (attrs.hasAttributes()) {
       if(arg->hasByValAttr()){
 
       }
       else{
-	AttrBuilder B(attrs, arg_index);
-	param_attrs_vec.push_back(AttributeSet::get(func->getContext(), params.size(), B));
+	//AttrBuilder B(attrs, arg_index); //kenny build for specific arg's attr
+	AttrBuilder B(attrs);
+	//param_attrs_vec.push_back(AttributeSet::get(func->getContext(), params.size(), B));
+      param_attrs_vec.push_back(AttributeList::get(func->getContext(), params.size(), B)); //kenny update AttributeSet into AttributeList
       }
       
     }
@@ -296,7 +305,8 @@ bool FixByValAttributes:: transformFunction(Function* func){
   FunctionType* nfty = FunctionType::get(ret_type, params, fty->isVarArg());
   Function* new_func = Function::Create(nfty, func->getLinkage(), func->getName()+ ".sb");
   //  new_func->copyAttributesFrom(func);
-  new_func->setAttributes(AttributeSet::get(func->getContext(), param_attrs_vec));
+  // new_func->setAttributes(AttributeSet::get(func->getContext(), param_attrs_vec)); //kenny update AttributeSet into AttributeList
+  new_func->setAttributes(AttributeList::get(func->getContext(), param_attrs_vec));
                           
   SmallVector<Value*, 16> call_args;      
   new_func->getBasicBlockList().splice(new_func->begin(), func->getBasicBlockList());  
@@ -357,7 +367,13 @@ bool FixByValAttributes:: transformFunction(Function* func){
           assert(struct_type && "non-struct byval parameters?");
 
           
-          AllocaInst* byval_alloca = new AllocaInst(struct_type, "", call);
+          //AllocaInst* byval_alloca = new AllocaInst(struct_type, "", call);
+          AllocaInst *byval_alloca = new AllocaInst(struct_type, struct_type->getPointerAddressSpace(), "", call); //kenny In the old LLVM, the alloca instrucion always allocates in the generic address space(0). But there is a class for getPointerAddressSpace, so I use it.
+          /*kenny Debugging purpose*/
+		  printf("kenny print struct_type->getPointerAddressSpace() value: %d  "
+                 "<-- The value shall be 0\n",
+                 struct_type->getPointerAddressSpace());
+          /*end of debug*/
           /* introduce stores, call_site_arg to byval_alloca */
           
           // introduce an alloca of the pointer type of byval
