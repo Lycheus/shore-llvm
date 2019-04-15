@@ -3128,9 +3128,21 @@ Value* SoftBoundCETS:: getSizeOfType(Type* input_type) {
   // Create a Constant Pointer Null of the input type.  Then get a
   // getElementPtr of it with next element access cast it to unsigned
   // int
-   
+
+  //kenny
+  //Because LLVM D26595 change PointerType to derive from Type rather than SequentialType
+  //As proposed on llvm-dev http://lists.llvm.org/pipermail/llvm-dev/2016-October/106640.html
+  //And update log at https://reviews.llvm.org/D26595
+  //We have to modify the following code to avoid segmentation fault.
+  
   const PointerType* ptr_type = dyn_cast<PointerType>(input_type);
 
+  //kenny debug
+  printf("kenny HELLO1\n");
+  input_type->dump();
+  ptr_type->dump();
+  printf("m_is_64_bit: %d\n", m_is_64_bit);
+  
   if (isa<FunctionType>(ptr_type->getElementType())) {
     if (m_is_64_bit) {
       return ConstantInt::get(Type::getInt64Ty(ptr_type->getContext()), 0);
@@ -3139,9 +3151,31 @@ Value* SoftBoundCETS:: getSizeOfType(Type* input_type) {
     }
   }
 
+  //kenny debug
+  printf("kenny HELLO3\n");
+
   const SequentialType* seq_type = dyn_cast<SequentialType>(input_type);
   Constant* int64_size = NULL;
+
+  if(ptr_type){
+    if(!seq_type){
+      //kenny debug
+      printf("kenny HELLO3.5\n");
+      if(m_is_64_bit) {
+        return ConstantInt::get(Type::getInt64Ty(ptr_type->getContext()), 0);        
+      }
+      else {
+        return ConstantInt::get(Type::getInt32Ty(ptr_type->getContext()), 0);
+      }
+    }
+  }
+  //kenny debug
+  //seq_type->dump();
+
   assert(seq_type && "pointer dereference and it is not a sequential type\n");
+
+  //kenny debug
+  printf("kenny HELLO4\n");
   
   StructType* struct_type = dyn_cast<StructType>(input_type);
 
@@ -5479,7 +5513,7 @@ bool SoftBoundCETS::runOnModule(Module& module) {
   //printf ("SoftBoundCETS::runOnModule::temporal_safety = %d\n", temporal_safety);
   
   int LongSize = module.getDataLayout().getPointerSizeInBits();
- 
+
   if (LongSize  == 64) {
     m_is_64_bit = true;
   } else {
