@@ -3137,12 +3137,6 @@ Value* SoftBoundCETS:: getSizeOfType(Type* input_type) {
   
   const PointerType* ptr_type = dyn_cast<PointerType>(input_type);
 
-  //kenny debug
-  printf("kenny HELLO1\n");
-  input_type->dump();
-  ptr_type->dump();
-  printf("m_is_64_bit: %d\n", m_is_64_bit);
-  
   if (isa<FunctionType>(ptr_type->getElementType())) {
     if (m_is_64_bit) {
       return ConstantInt::get(Type::getInt64Ty(ptr_type->getContext()), 0);
@@ -3151,16 +3145,16 @@ Value* SoftBoundCETS:: getSizeOfType(Type* input_type) {
     }
   }
 
-  //kenny debug
-  printf("kenny HELLO3\n");
-
   const SequentialType* seq_type = dyn_cast<SequentialType>(input_type);
   Constant* int64_size = NULL;
 
+  /*kenny
+  Because the pointer type is now moved out from the seq_type, and if the input_type
+  is pointer, then the seq_type will be NULL and cause segmentation fault when used.
+  thus we have to test ptr_type and return before the code using any seq_type.
+  */
   if(ptr_type){
     if(!seq_type){
-      //kenny debug
-      printf("kenny HELLO3.5\n");
       if(m_is_64_bit) {
         return ConstantInt::get(Type::getInt64Ty(ptr_type->getContext()), 0);        
       }
@@ -3169,14 +3163,9 @@ Value* SoftBoundCETS:: getSizeOfType(Type* input_type) {
       }
     }
   }
-  //kenny debug
-  //seq_type->dump();
 
   assert(seq_type && "pointer dereference and it is not a sequential type\n");
 
-  //kenny debug
-  printf("kenny HELLO4\n");
-  
   StructType* struct_type = dyn_cast<StructType>(input_type);
 
   if(struct_type){
