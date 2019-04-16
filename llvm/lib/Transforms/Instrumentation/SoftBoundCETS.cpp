@@ -1073,6 +1073,7 @@ SoftBoundCETS::addMemoryAllocationCall(Function* func,
 											m_void_ptr_type->getPointerAddressSpace(), //kenny add for addrspace, previous LLVM version dont have this aug.
                                            "lock_alloca", first_inst_func);
   /*kenny Debugging purpose*/
+  printf("kenny: if you see this section of code, beware the modification kenny made to merge SoftboundCETS-3.9 to LLVM8.0. @SoftboundCETS.cpp Line:%d\n", __LINE__);
   printf("kenny print m_void_ptr_type->getPointerAddressSpace() value: %d  "
          "<-- The value shall be 0\n",
          m_void_ptr_type->getPointerAddressSpace());
@@ -3163,7 +3164,8 @@ Value* SoftBoundCETS:: getSizeOfType(Type* input_type) {
       }
     }
   }
-
+  //end addendum
+  
   assert(seq_type && "pointer dereference and it is not a sequential type\n");
 
   StructType* struct_type = dyn_cast<StructType>(input_type);
@@ -3178,6 +3180,9 @@ Value* SoftBoundCETS:: getSizeOfType(Type* input_type) {
       }
     }
   }
+
+  // kenny add some assert warning if code enter here
+  printf("kenny: if you see this section of code, beware the modification kenny made to merge SoftboundCETS-3.9 to LLVM8.0. @SoftboundCETS.cpp Line:%d\n", __LINE__);
   
   if(m_is_64_bit) {
 

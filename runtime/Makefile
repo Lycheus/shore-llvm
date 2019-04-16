@@ -1,11 +1,11 @@
-all: softboundcets_rt 
+all: softboundcets_rt_riscv 
 
 #CFLAGS=-Wall -pedantic -O3 -D__SOFTBOUNDCETS_SPATIAL_TEMPORAL
 CFLAGS=-Wall -pedantic -O3 -D__SOFTBOUNDCETS_SPATIAL
 # kenny modify to disable temporal safety
 ARFLAGS=-rcs
 
-SOFTBOUND_CLANG=/home/lycheus/git/SoftboundCETS/build/bin/clang
+SOFTBOUND_CLANG=/home/lycheus/SoftBoundCETS-3.9/build/bin/clang
 #RISCV_GCC=/home/lycheus/git/riscv/_install/bin/clang
 
 # If LLVM_GOLD is set, also build a library for use with LTO
