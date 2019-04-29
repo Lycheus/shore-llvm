@@ -738,7 +738,7 @@ softboundcets_bsearch(const void *key, const void *base,
     return ret_ptr;
 
 }
-
+/* kenny disable function wrapper that dont suport static linking for qemu-riscv simulator
 __WEAK_INLINE 
 struct group *softboundcets_getgrnam(const char *name){
   void* ret_ptr = getgrnam(name);
@@ -747,7 +747,7 @@ struct group *softboundcets_getgrnam(const char *name){
 
   return ret_ptr;  
 }
-
+*/
 __WEAK_INLINE
 int softboundcets_rpmatch(const char *response){
   return rpmatch(response);
@@ -791,7 +791,7 @@ iconv_t softboundcets_iconv_open(const char *tocode, const char *fromcode){
 
 
 
-
+/* kenny disable function wrapper that dont suport static linking for qemu-riscv simulator
 __WEAK_INLINE 
 struct passwd * softboundcets_getpwnam(const char *name){
   void* ret_ptr = getpwnam(name);
@@ -799,11 +799,9 @@ struct passwd * softboundcets_getpwnam(const char *name){
                                         1, (void*) __softboundcets_global_lock);
 
   return ret_ptr;  
-
-  
 }
-
-
+*/
+/* kenny disable function wrapper that dont suport static linking for qemu-riscv simulator
 __WEAK_INLINE struct passwd *softboundcets_getpwuid(uid_t uid){
   void* ret_ptr= getpwuid(uid);
 
@@ -812,7 +810,8 @@ __WEAK_INLINE struct passwd *softboundcets_getpwuid(uid_t uid){
 
   return ret_ptr;  
 }
-
+*/
+/* kenny disable function wrapper that dont suport static linking for qemu-riscv simulator
 __WEAK_INLINE struct group *softboundcets_getgrgid(gid_t gid){
   
   void* ret_ptr = getgrgid(gid);
@@ -822,7 +821,7 @@ __WEAK_INLINE struct group *softboundcets_getgrgid(gid_t gid){
   return ret_ptr;  
 
 }
-
+*/
 
 
 
@@ -1984,6 +1983,7 @@ softboundcets_dcngettext (const char * domainname,
 
 /* IMP: struct hostent may have pointers in the structure being returned,
    we need to store the metadata for all those pointers */
+/* kenny disable function wrapper that dont suport static linking for qemu-riscv simulator
 __WEAK_INLINE 
 struct hostent * softboundcets_gethostbyname(const char *name){
   
@@ -1996,7 +1996,7 @@ struct hostent * softboundcets_gethostbyname(const char *name){
   
   return ret_ptr;  
 }
-
+*/
 
 
 __WEAK_INLINE char*
