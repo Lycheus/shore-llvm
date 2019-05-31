@@ -557,7 +557,7 @@ __softboundcets_spatial_store_dereference_check(void *base,
                                                 void *ptr, 
                                                 size_t size_of_type)
 {
-  
+
   if ((ptr < base) || ((void*)((char*)ptr + size_of_type) > bound)) {
     __softboundcets_printf("In Store Dereference Check, base=%p, bound=%p, ptr=%p, size_of_type=%zx, ptr+size=%p\n",
                               base, bound, ptr, size_of_type, (char*)ptr+size_of_type); 

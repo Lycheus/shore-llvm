@@ -88,6 +88,9 @@ __SOFTBOUNDCETS_NORETURN void __softboundcets_abort()
   
   fprintf(stderr, "\n\n");
 
+  //kenny add disabling bound check if abort
+  __asm__ volatile("csrw 0x800, x0");
+  
   abort();
 }
 
@@ -161,10 +164,15 @@ void __softboundcets_init(void)
 
 
   size_t length_trie = (__SOFTBOUNDCETS_TRIE_PRIMARY_TABLE_ENTRIES) * sizeof(__softboundcets_trie_entry_t*);
+
   
   __softboundcets_trie_primary_table = mmap(0, length_trie, 
 					    PROT_READ| PROT_WRITE, 
 					    SOFTBOUNDCETS_MMAP_FLAGS, -1, 0);
+  
+  //kenny replace mmap into malloc to workaround the proxy kernel mmap limit to 4k problem.
+  //__softboundcets_trie_primary_table = malloc(length_trie);
+  
   assert(__softboundcets_trie_primary_table != (void *)-1);  
   
   int* temp = malloc(1);
