@@ -89,7 +89,7 @@ __SOFTBOUNDCETS_NORETURN void __softboundcets_abort()
   fprintf(stderr, "\n\n");
 
   //kenny add disabling bound check if abort
-  __asm__ volatile("csrw 0x800, x0");
+  //__asm__ volatile("csrw 0x800, x0");
   
   abort();
 }

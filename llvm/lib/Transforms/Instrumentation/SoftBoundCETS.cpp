@@ -467,7 +467,8 @@ class SoftBoundCETS: public ModulePass {
  SoftBoundCETS()
    : ModulePass(ID){
     spatial_safety= true;
-    temporal_safety=false; //kenny disable temporal safety
+    temporal_safety=true; //kenny enable temporal safety
+    //temporal_safety=false; //kenny disable temporal safety
     //printf ("SoftBoundCETS::constructor::temporal_safety = %d\n", temporal_safety);
     
     //    initializeSoftBoundCETS(*PassRegistry::getPassRegistry());
@@ -519,13 +520,11 @@ disable_spatial_safety
  cl::desc("disable transformation for spatial safety"),
  cl::init(false));
 
-// kenny disable temporal_safety
 cl::opt<bool>
 disable_temporal_safety
 ("softboundcets_disable_temporal_safety",
  cl::desc("disable transformation for temporal safety"),
  cl::init(false));
- // cl::init(true));
 
 static cl::opt<bool>
 store_only
@@ -5493,7 +5492,8 @@ void SoftBoundCETS::identifyOriginalInst (Function * func) {
 bool SoftBoundCETS::runOnModule(Module& module) {
 
   spatial_safety = true;
-  temporal_safety = false; //kenny disable temporal safety
+  temporal_safety = true; //kenny enable temporal safety
+  //temporal_safety = false; //kenny disable temporal safety
 
 
   if(disable_spatial_safety){

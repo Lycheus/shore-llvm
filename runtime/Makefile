@@ -1,7 +1,7 @@
 all: softboundcets_rt_riscv 
 
-#CFLAGS=-Wall -pedantic -O3 -D__SOFTBOUNDCETS_SPATIAL_TEMPORAL
-CFLAGS=-Wall -pedantic -O3 -D__SOFTBOUNDCETS_SPATIAL
+CFLAGS=-Wall -pedantic -O3 -D__SOFTBOUNDCETS_SPATIAL_TEMPORAL
+#CFLAGS=-Wall -pedantic -O3 -D__SOFTBOUNDCETS_SPATIAL
 # kenny modify to disable temporal safety
 ARFLAGS=-rcs
 
