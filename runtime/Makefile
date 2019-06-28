@@ -19,15 +19,18 @@ all: softboundcets_rt_lto
 endif
 
 softboundcets_rt_riscv: softboundcets.h softboundcets-checks.c softboundcets.c softboundcets-wrappers.c
-	$(SOFTBOUND_CLANG) $(CFLAGS) -emit-llvm -S softboundcets-checks.c
-	$(SOFTBOUND_CLANG) $(CFLAGS) -emit-llvm -S softboundcets.c
-	$(SOFTBOUND_CLANG) $(CFLAGS) -emit-llvm -S softboundcets-wrappers.c
-	llc -march=riscv64 -mtriple=riscv64-unknown-linux-gnu softboundcets-checks.ll
-	llc -march=riscv64 -mtriple=riscv64-unknown-linux-gnu softboundcets.ll
-	llc -march=riscv64 -mtriple=riscv64-unknown-linux-gnu softboundcets-wrappers.ll
-	riscv64-unknown-linux-gnu-gcc -c -march=rv64gc -mabi=lp64 softboundcets-checks.s
-	riscv64-unknown-linux-gnu-gcc -c -march=rv64gc -mabi=lp64 softboundcets.s
-	riscv64-unknown-linux-gnu-gcc -c -march=rv64gc -mabi=lp64 softboundcets-wrappers.s
+	#$(SOFTBOUND_CLANG) $(CFLAGS) -emit-llvm -S softboundcets-checks.c
+	#$(SOFTBOUND_CLANG) $(CFLAGS) -emit-llvm -S softboundcets.c
+	#$(SOFTBOUND_CLANG) $(CFLAGS) -emit-llvm -S softboundcets-wrappers.c
+	#llc -march=riscv64 -mtriple=riscv64-unknown-linux-gnu softboundcets-checks.ll
+	#llc -march=riscv64 -mtriple=riscv64-unknown-linux-gnu softboundcets.ll
+	#llc -march=riscv64 -mtriple=riscv64-unknown-linux-gnu softboundcets-wrappers.ll
+	#riscv64-unknown-linux-gnu-gcc -c -march=rv64gc -mabi=lp64 softboundcets-checks.s
+	#riscv64-unknown-linux-gnu-gcc -c -march=rv64gc -mabi=lp64 softboundcets.s
+	#riscv64-unknown-linux-gnu-gcc -c -march=rv64gc -mabi=lp64 softboundcets-wrappers.s
+	clang $(CFLAGS) -c softboundcets-checks.c -o softboundcets-checks.o
+	clang $(CFLAGS) -c softboundcets.c -o softboundcets.o
+	clang $(CFLAGS) -c softboundcets-wrappers.c -o softboundcets-wrappers.o
 	riscv64-unknown-linux-gnu-ar $(ARFLAGS) libsoftboundcets_rt.a softboundcets.o softboundcets-checks.o softboundcets-wrappers.o
 
 softboundcets_rt: softboundcets.h softboundcets-checks.c softboundcets.c softboundcets-wrappers.c
