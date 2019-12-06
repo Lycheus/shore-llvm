@@ -75,8 +75,13 @@ void* malloc_address = NULL;
 
 __SOFTBOUNDCETS_NORETURN void __softboundcets_abort()
 {
-  fprintf(stderr, "\nSoftboundcets: Memory safety violation detected\n\nBacktrace:\n");
+  //kenny print return address to identify the location of the violation
+  //unsigned long return_addr;
+  //asm volatile ("mv %0, ra" : "=r" (return_addr));
+  //printf("ABORT return address: %p\n", return_addr);
 
+  fprintf(stderr, "\nSoftboundcets: Memory safety violation detected\n\nBacktrace:\n");
+  
   // Based on code from the backtrace man page
   size_t size;
   void *array[100];
@@ -118,9 +123,15 @@ void __softboundcets_init(void)
 
   size_t temporal_table_length = (__SOFTBOUNDCETS_N_TEMPORAL_ENTRIES)* sizeof(void*);
 
+
+  //kenny: this location alloc memory for temporal lock, and seems it is really asking too much space for locks
+  
   __softboundcets_lock_new_location = mmap(0, temporal_table_length, 
                                            PROT_READ| PROT_WRITE,
                                            SOFTBOUNDCETS_MMAP_FLAGS, -1, 0);
+  
+  //kenny replace mmap into malloc
+  //__softboundcets_lock_new_location = (size_t *)malloc(temporal_table_length);
   
   assert(__softboundcets_lock_new_location != (void*) -1);
   __softboundcets_temporal_space_begin = (size_t *)__softboundcets_lock_new_location;

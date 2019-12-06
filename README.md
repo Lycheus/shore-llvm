@@ -95,7 +95,9 @@ passed in integer registers).
     cd  runtime
     make softboundcets_rt_riscv
     popd
-    
+    # You can enable runtime function counter by adding "-D__FUNC_CYCLE" CLAGS in Makefile.
+    # To access these counters, please refer to README in runtime folder.
+
     # 32 bit
     clang -O -c hello.c --target=riscv32
     riscv64-unknown-elf-gcc hello.o -o hello -march=rv32imac -mabi=ilp32
@@ -110,4 +112,24 @@ passed in integer registers).
     clang hello.c -c -fsoftboundcets
     riscv64-unknown-linux-gnu-gcc hello.o -o hello -march=rv64gc -mabi=lp64 -L `pwd`/riscv-llvm/runtime -lsoftboundcets_rt -lm -lrt -static
     qemu-riscv64 hello
+
+    -------
+    Some alternitive building script for different lib stack are available here.
     
+    cmake -G Ninja -DCMAKE_BUILD_TYPE="Release" \
+    -DBUILD_SHARED_LIBS=True -DLLVM_USE_SPLIT_DWARF=True \
+    -DCMAKE_INSTALL_PREFIX="../../_install" \
+    -DLLVM_OPTIMIZED_TABLEGEN=True -DLLVM_BUILD_TESTS=False \
+    -DDEFAULT_SYSROOT="../../_install/sysroot" \
+    -DLLVM_DEFAULT_TARGET_TRIPLE="riscv64-unknown-gnu-linux" \
+    -DLLVM_TARGETS_TO_BUILD="" -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD="RISCV" \
+    ../llvm
+
+    cmake -G Ninja -DCMAKE_BUILD_TYPE="Release" \
+    -DBUILD_SHARED_LIBS=True -DLLVM_USE_SPLIT_DWARF=True \
+    -DCMAKE_INSTALL_PREFIX="../../_install" \
+    -DLLVM_OPTIMIZED_TABLEGEN=True -DLLVM_BUILD_TESTS=False \
+    -DLLVM_DEFAULT_TARGET_TRIPLE="x86_64-unknown-linux-gnu" \
+    -DLLVM_TARGETS_TO_BUILD="X86" -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD="" \
+    ../llvm
+

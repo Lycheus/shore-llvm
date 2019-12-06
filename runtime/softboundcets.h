@@ -156,12 +156,34 @@ static const int __SOFTBOUNDCETS_FREE_MAP = 1;
 static const int __SOFTBOUNDCETS_FREE_MAP = 0;
 #endif
 
-
+//kenny add variable for tracking runtime function cycle count
+#ifdef __FUNC_CYCLE
+extern unsigned long sldc_cycle;
+extern unsigned long ssdc_cycle;
+extern unsigned long tldc_cycle;
+extern unsigned long tsdc_cycle;
+extern unsigned long mdl_cycle;
+extern unsigned long mds_cycle;
+extern unsigned long sls_cycle;
+extern unsigned long sks_cycle;
+extern unsigned long sbds_cycle;
+extern unsigned long sbas_cycle;
+extern unsigned long lls_cycle;
+extern unsigned long lks_cycle;
+extern unsigned long lbds_cycle;
+extern unsigned long lbas_cycle;
+extern unsigned long mcpk_cycle;
+extern unsigned long cpmt_cycle;
+extern unsigned long dsss_cycle;
+extern unsigned long asss_cycle;
+extern unsigned long smd_cycle;
+extern unsigned long sma_cycle;
+#endif
 
 // check if __WORDSIZE works with clang on both Linux and MacOSX
 /* Allocating one million entries for the temporal key */
-#if __WORDSIZE == 32
-static const size_t __SOFTBOUNDCETS_N_TEMPORAL_ENTRIES = ((size_t) 4 * (size_t) 1024 * (size_t) 1024); 
+#if __WORDSIZE == 32 //kenny Not the case for scylla
+static const size_t __SOFTBOUNDCETS_N_TEMPORAL_ENTRIES = ((size_t) 4 * (size_t) 1024 * (size_t) 1024);
 static const size_t __SOFTBOUNDCETS_LOWER_ZERO_POINTER_BITS = 2;
 static const size_t __SOFTBOUNDCETS_N_STACK_TEMPORAL_ENTRIES = ((size_t) 1024 * (size_t) 64);
 static const size_t __SOFTBOUNDCETS_N_GLOBAL_LOCK_SIZE = ((size_t) 1024 * (size_t) 32);
@@ -171,31 +193,44 @@ static const size_t __SOFTBOUNDCETS_SHADOW_STACK_ENTRIES = ((size_t) 128 * (size
 /* 256 Million simultaneous objects */
 static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 32 * (size_t) 1024* (size_t) 1024);
 // each secondary entry has 2^ 22 entries 
-static const size_t __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES = ((size_t) 4 * (size_t) 1024 * (size_t) 1024); 
+static const size_t __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES = ((size_t) 4 * (size_t) 1024 * (size_t) 1024);
 
 #else
-
-static const size_t __SOFTBOUNDCETS_N_TEMPORAL_ENTRIES = ((size_t) 64*(size_t) 1024 * (size_t) 1024); 
+//kenny limit the size of temporal entries
+//static const size_t __SOFTBOUNDCETS_N_TEMPORAL_ENTRIES = ((size_t) 64*(size_t) 1024 * (size_t) 1024);
+static const size_t __SOFTBOUNDCETS_N_TEMPORAL_ENTRIES = ((size_t) 1024); //Set to 1024 entries in order to fit inside the FPGA Memory (segfault)
+//static const size_t __SOFTBOUNDCETS_N_TEMPORAL_ENTRIES = ((size_t) 750); 
 static const size_t __SOFTBOUNDCETS_LOWER_ZERO_POINTER_BITS = 3;
-
 static const size_t __SOFTBOUNDCETS_N_STACK_TEMPORAL_ENTRIES = ((size_t) 1024 * (size_t) 64);
 static const size_t __SOFTBOUNDCETS_N_GLOBAL_LOCK_SIZE = ((size_t) 1024 * (size_t) 32);
 
 // 2^23 entries each will be 8 bytes each 
 static const size_t __SOFTBOUNDCETS_TRIE_PRIMARY_TABLE_ENTRIES = ((size_t) 8*(size_t) 1024 * (size_t) 1024);
+//kenny change to fit the RISC-V 39 bit virtial address space
+// 2^20 entries each will be 8 bytes each 
+//static const size_t __SOFTBOUNDCETS_TRIE_PRIMARY_TABLE_ENTRIES = ((size_t) 1*(size_t) 1024 * (size_t) 1024);
 
 static const size_t __SOFTBOUNDCETS_SHADOW_STACK_ENTRIES = ((size_t) 128 * (size_t) 32 );
 
 /* 256 Million simultaneous objects */
-static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 32 * (size_t) 1024* (size_t) 1024);
+//static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 32 * (size_t) 1024* (size_t) 1024);
+//static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 375);
+static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 1024); //Set to 1024 entries in order to fit inside the FPGA Memory (segfault)
+
 // each secondary entry has 2^ 22 entries 
 static const size_t __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES = ((size_t) 4 * (size_t) 1024 * (size_t) 1024); 
+//kenny change to fit the RISC-V 39 bit virtial address space
+// each secondary entry has 2^19 entries 
+//static const size_t __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES = ((size_t) 1 * (size_t) 512 * (size_t) 1024);
 
 #endif
 
-#define __WEAK__ __attribute__((__weak__))
+//kenny try to force inline
+//#define __WEAK_INLINE __attribute__((__always_inline__)) 
+//#define __METADATA_INLINE __attribute__((__always_inline__))
 
-#define __WEAK_INLINE __attribute__((__weak__,__always_inline__)) 
+#define __WEAK__ __attribute__((__weak__))
+#define __WEAK_INLINE __attribute__((__weak__,__always_inline__))
 
 #if __WORDSIZE == 32
 #define __METADATA_INLINE 
@@ -253,7 +288,12 @@ void __softboundcets_global_init()
   and decrement the shadow_stack_ptr */
   
 __WEAK_INLINE void __softboundcets_allocate_shadow_stack_space(int num_pointer_args){
- 
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
 
   size_t* prev_stack_size_ptr = __softboundcets_shadow_stack_ptr + 1;
   size_t prev_stack_size = *((size_t*)prev_stack_size_ptr);
@@ -265,82 +305,192 @@ __WEAK_INLINE void __softboundcets_allocate_shadow_stack_space(int num_pointer_a
   
   ssize_t size = num_pointer_args * __SOFTBOUNDCETS_METADATA_NUM_FIELDS;
   *((size_t*) current_stack_size_ptr) = size;
+  
+  #ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  asss_cycle += rdcycle_end - rdcycle_start;
+  #endif  
+
 }
    
 __WEAK_INLINE void* __softboundcets_load_base_shadow_stack(int arg_no){
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
+
   assert (arg_no >= 0 );
   size_t count = 2 +  arg_no * __SOFTBOUNDCETS_METADATA_NUM_FIELDS + __BASE_INDEX ;
   size_t* base_ptr = (__softboundcets_shadow_stack_ptr + count); 
   void* base = *((void**)base_ptr);
+  
+  #ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  lbas_cycle += rdcycle_end - rdcycle_start;
+  #endif
+  
   return base;
 }
 
 __WEAK_INLINE void* __softboundcets_load_bound_shadow_stack(int arg_no){
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
 
   assert (arg_no >= 0 );
   size_t count = 2 + arg_no * __SOFTBOUNDCETS_METADATA_NUM_FIELDS  + __BOUND_INDEX ;
   size_t* bound_ptr = (__softboundcets_shadow_stack_ptr + count); 
 
   void* bound = *((void**)bound_ptr);
+
+  #ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  lbds_cycle += rdcycle_end - rdcycle_start;
+  #endif
+
   return bound;
 }
 
 __WEAK_INLINE size_t __softboundcets_load_key_shadow_stack(int arg_no){
-
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
+  
   assert (arg_no >= 0 );
   size_t count = 2 + arg_no * __SOFTBOUNDCETS_METADATA_NUM_FIELDS  + __KEY_INDEX ;
   size_t* key_ptr = (__softboundcets_shadow_stack_ptr + count); 
   size_t key = *key_ptr;
+
+  #ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  lks_cycle += rdcycle_end - rdcycle_start;
+  #endif
+
   return key;
 }
 
 __WEAK_INLINE void* __softboundcets_load_lock_shadow_stack(int arg_no){
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
 
   assert (arg_no >= 0 );
   size_t count = 2 + arg_no * __SOFTBOUNDCETS_METADATA_NUM_FIELDS + __LOCK_INDEX;
   size_t* lock_ptr = (__softboundcets_shadow_stack_ptr + count); 
   void* lock = *((void**)lock_ptr);
+
+  #ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  lls_cycle += rdcycle_end - rdcycle_start;
+  #endif
+  
   return lock;
 }
 
 __WEAK_INLINE void __softboundcets_store_base_shadow_stack(void* base, int arg_no){
-  
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
+
   assert(arg_no >= 0);
   size_t count = 2 +  arg_no * __SOFTBOUNDCETS_METADATA_NUM_FIELDS + __BASE_INDEX ;
   void** base_ptr = (void**)(__softboundcets_shadow_stack_ptr + count); 
 
   *(base_ptr) = base;
 
+  
+  #ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  sbas_cycle += rdcycle_end - rdcycle_start;
+  #endif
+  
 }
 
 __WEAK_INLINE void __softboundcets_store_bound_shadow_stack(void* bound, int arg_no){
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
 
   assert(arg_no >= 0);
   size_t count = 2 +  arg_no * __SOFTBOUNDCETS_METADATA_NUM_FIELDS + __BOUND_INDEX ;
   void** bound_ptr = (void**)(__softboundcets_shadow_stack_ptr + count); 
 
   *(bound_ptr) = bound;
+
+  #ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  sbds_cycle += rdcycle_end - rdcycle_start;
+  #endif
+
 }
 
 __WEAK_INLINE void __softboundcets_store_key_shadow_stack(size_t key, int arg_no){
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
+
   assert(arg_no >= 0);
   size_t count = 2 +  arg_no * __SOFTBOUNDCETS_METADATA_NUM_FIELDS + __KEY_INDEX ;
   size_t* key_ptr = (__softboundcets_shadow_stack_ptr + count); 
 
   *(key_ptr) = key;
 
+  #ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  sks_cycle += rdcycle_end - rdcycle_start;
+  #endif
+  
 }
 
 
 __WEAK_INLINE void __softboundcets_store_lock_shadow_stack(void* lock, int arg_no){
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
+
   assert(arg_no >= 0);
   size_t count = 2 +  arg_no * __SOFTBOUNDCETS_METADATA_NUM_FIELDS + __LOCK_INDEX ;
   void** lock_ptr = (void**)(__softboundcets_shadow_stack_ptr + count); 
 
   *(lock_ptr) = lock;
+
+  #ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  sls_cycle += rdcycle_end - rdcycle_start;
+  #endif
+
 }
 
 __WEAK_INLINE void __softboundcets_deallocate_shadow_stack_space(){
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
 
   size_t* reserved_space_ptr = __softboundcets_shadow_stack_ptr;
 
@@ -349,6 +499,12 @@ __WEAK_INLINE void __softboundcets_deallocate_shadow_stack_space(){
   assert((read_value >=0 && read_value <= __SOFTBOUNDCETS_SHADOW_STACK_ENTRIES));
                                                 
   __softboundcets_shadow_stack_ptr =  __softboundcets_shadow_stack_ptr - read_value - 2;
+    
+  #ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  dsss_cycle += rdcycle_end - rdcycle_start;
+  #endif
+
 }
 
 __WEAK_INLINE __softboundcets_trie_entry_t* __softboundcets_trie_allocate(){
@@ -397,7 +553,13 @@ __WEAK_INLINE void __softboundcets_introspect_metadata(void* ptr,
 __METADATA_INLINE 
 void __softboundcets_copy_metadata(void* dest, void* from, 
 				   size_t size){
-  
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
+
   //  printf("dest=%p, from=%p, size=%zx\n", dest, from, size);
   
   size_t dest_ptr = (size_t) dest;
@@ -468,8 +630,14 @@ void __softboundcets_copy_metadata(void* dest, void* from,
 #else
       memcpy(dest_entry_ptr, from_entry_ptr, 32);
 #endif
-    }    
-    return;
+    }
+
+#ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  cpmt_cycle += rdcycle_end - rdcycle_start;
+#endif
+
+  return;
 
   }
     
@@ -506,6 +674,12 @@ void __softboundcets_copy_metadata(void* dest, void* from,
 
   memcpy(dest_entry_ptr, from_entry_ptr, 32* (size>> 3));
 #endif
+
+#ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  cpmt_cycle += rdcycle_end - rdcycle_start;
+#endif
+  
   return;
 }
 
@@ -540,6 +714,12 @@ __softboundcets_spatial_load_dereference_check(void *base, void *bound,
                                                void *ptr, size_t size_of_type)
 {
 
+  //BEGIN
+#ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+#endif
 
   if ((ptr < base) || ((void*)((char*) ptr + size_of_type) > bound)) {
 
@@ -548,6 +728,11 @@ __softboundcets_spatial_load_dereference_check(void *base, void *bound,
     __softboundcets_abort();
   }
 
+#ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  sldc_cycle += rdcycle_end - rdcycle_start;
+#endif
+  
 }
 
 
@@ -557,6 +742,12 @@ __softboundcets_spatial_store_dereference_check(void *base,
                                                 void *ptr, 
                                                 size_t size_of_type)
 {
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
 
   if ((ptr < base) || ((void*)((char*)ptr + size_of_type) > bound)) {
     __softboundcets_printf("In Store Dereference Check, base=%p, bound=%p, ptr=%p, size_of_type=%zx, ptr+size=%p\n",
@@ -564,6 +755,11 @@ __softboundcets_spatial_store_dereference_check(void *base,
     
     __softboundcets_abort();
   }
+#ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  ssdc_cycle += rdcycle_end - rdcycle_start;
+#endif
+
 }
 
 /* Memcopy check, different variants based on spatial, temporal and
@@ -615,6 +811,13 @@ __softboundcets_memcopy_check(void* dest, void* src, size_t size,
                               size_t dest_key, void* dest_lock, 
                               size_t src_key, void* src_lock) {  
 
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
+
 #ifndef __NOSIM_CHECKS
 
   /* printf("dest=%zx, src=%zx, size=%zx, ulong_max=%zx\n",  */
@@ -639,7 +842,11 @@ __softboundcets_memcopy_check(void* dest, void* src, size_t size,
 
 #endif
 
-
+  #ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  mcpk_cycle += rdcycle_end - rdcycle_start;
+  #endif
+  
 }
 #else
 
@@ -700,6 +907,12 @@ __softboundcets_memset_check(void* dest, size_t size,
                              void* dest_base, void* dest_bound, 
                              size_t dest_key, void* dest_lock){
 
+  //kenny print return address to identify the location of the violation
+  //unsigned long return_addr;
+  //asm volatile ("mv %0, ra" : "=r" (return_addr));
+  //printf("MEMSET_CHECK return address: %p\n", return_addr);
+  
+  
   if(size >= LONG_MAX)
     __softboundcets_abort();
 
@@ -760,6 +973,13 @@ __METADATA_INLINE void __softboundcets_metadata_store(void* addr_of_ptr,
 
 #endif 
 
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
+
   size_t ptr = (size_t) addr_of_ptr;
   size_t primary_index;
   __softboundcets_trie_entry_t* trie_secondary_table;
@@ -816,6 +1036,11 @@ __METADATA_INLINE void __softboundcets_metadata_store(void* addr_of_ptr,
 #endif
 
 
+  #ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  mds_cycle += rdcycle_end - rdcycle_start;
+  #endif
+  
   return;
 }
 
@@ -901,6 +1126,13 @@ __METADATA_INLINE void __softboundcets_metadata_load(void* addr_of_ptr, void** b
 
 #endif
 
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
+  
   size_t ptr = (size_t) addr_of_ptr;
   __softboundcets_trie_entry_t* trie_secondary_table;
   //    __softboundcets_trie_entry_t** trie_primary_table = __softboundcets_trie_primary_table;
@@ -933,7 +1165,14 @@ __METADATA_INLINE void __softboundcets_metadata_load(void* addr_of_ptr, void** b
       *((void**) bound) = 0;
       *((size_t*) key ) = 0;
       *((size_t*) lock) = 0;                
-#endif 
+#endif
+
+      
+#ifdef __FUNC_CYCLE
+      asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+      mdl_cycle += rdcycle_end - rdcycle_start;
+#endif
+
       return;
     }
   } /* PREALLOCATE_ENDS */
@@ -964,7 +1203,13 @@ __METADATA_INLINE void __softboundcets_metadata_load(void* addr_of_ptr, void** b
   *((size_t*) key) = entry_ptr->key;
   *((void**) lock) = (void*) entry_ptr->lock;
 
-#endif      
+#endif
+  
+  #ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  mdl_cycle += rdcycle_end - rdcycle_start;
+  #endif
+
   return;
 }
 /******************************************************************************/
@@ -999,7 +1244,12 @@ __softboundcets_temporal_load_dereference_check(void* pointer_lock,
 
 #endif
 
-
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
 
   size_t temp = *((size_t*)pointer_lock);
   
@@ -1012,7 +1262,11 @@ __softboundcets_temporal_load_dereference_check(void* pointer_lock,
                            key, temp, __softboundcets_lock_next_location );
     __softboundcets_abort();    
   }
-
+  #ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  tldc_cycle += rdcycle_end - rdcycle_start;
+  #endif
+  
 }
 
 #ifdef __SOFTBOUNDCETS_SPATIAL_TEMPORAL
@@ -1033,7 +1287,14 @@ __softboundcets_temporal_store_dereference_check(void* pointer_lock,
     __softboundcets_abort();    
   }
 #endif
-  
+
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
+
   size_t temp = *((size_t*)pointer_lock);
   
   if(temp != key) {
@@ -1046,11 +1307,22 @@ __softboundcets_temporal_store_dereference_check(void* pointer_lock,
                            key, temp );    
     __softboundcets_abort();    
   }
+
+#ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  tsdc_cycle += rdcycle_end - rdcycle_start;
+  #endif
+  
 }
 
 
 __WEAK_INLINE void __softboundcets_stack_memory_deallocation(size_t ptr_key){
-
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
   
 #ifndef __SOFTBOUNDCETS_CONSTANT_STACK_KEY_LOCK
 
@@ -1059,6 +1331,11 @@ __WEAK_INLINE void __softboundcets_stack_memory_deallocation(size_t ptr_key){
 
 #endif
 
+  #ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  smd_cycle += rdcycle_end - rdcycle_start;
+  #endif
+  
   return;
 
 }
@@ -1086,6 +1363,7 @@ __softboundcets_memory_deallocation(void* ptr_lock, size_t ptr_key) {
 __WEAK_INLINE void*  __softboundcets_allocate_lock_location() {
   
   void* temp= NULL;
+  //fprintf (stderr, "Kenny debug __softboundcets_lock_next_location = %p\n", __softboundcets_lock_next_location);
   if(__softboundcets_lock_next_location == NULL) {
     if(__SOFTBOUNDCETS_DEBUG) {
       __softboundcets_printf("[lock_allocate] new_lock_location=%p\n", 
@@ -1175,7 +1453,12 @@ __softboundcets_allocation_secondary_trie_allocate(void* addr_of_ptr) {
 
 __WEAK_INLINE void 
 __softboundcets_stack_memory_allocation(void** ptr_lock, size_t* ptr_key) {
-
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
 
 #ifdef __SOFTBOUNDCETS_CONSTANT_STACK_KEY_LOCK
   *((size_t*) ptr_key) = 1;
@@ -1187,6 +1470,11 @@ __softboundcets_stack_memory_allocation(void** ptr_lock, size_t* ptr_key) {
   **((size_t**)ptr_lock) = temp_id;  
 #endif
 
+  #ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  sma_cycle += rdcycle_end - rdcycle_start;
+  #endif
+  
 }
 
 __WEAK_INLINE void 
@@ -1199,9 +1487,13 @@ __softboundcets_memory_allocation(void* ptr, void** ptr_lock, size_t* ptr_key){
   **((size_t**) ptr_lock) = temp_id;
 
   __softboundcets_add_to_free_map(temp_id, ptr);
+
+  //kenny dump info
+  //printf("Done add_to_free_map\n");
   //  printf("memory allocation ptr=%zx, ptr_key=%zx\n", ptr, temp_id);
   __softboundcets_allocation_secondary_trie_allocate(ptr);
-
+  //printf("Done allocation_secondary_trie_allocate\n");
+  
   if(__SOFTBOUNDCETS_DEBUG) {    
     __softboundcets_printf("[mem_alloc] lock = %p, ptr_key = %p, key = %zx\n", 
                            ptr_lock, ptr_key, temp_id);
@@ -1226,8 +1518,11 @@ __WEAK_INLINE void __softboundcets_add_to_free_map(size_t ptr_key, void* ptr) {
     size_t* entry_ptr = &__softboundcets_free_map_table[index];
     size_t tag = *entry_ptr;
 
+    //kenny trace
+    //printf("inside _add_to_free_map\n");
     if(tag == 0 || tag == 2) {
-      //      printf("entry_ptr=%zx, ptr=%zx, key=%zx\n", entry_ptr, ptr, ptr_key);
+      //kenny dump
+      //printf("entry_ptr=%zx, ptr=%zx, key=%zx\n", entry_ptr, ptr, ptr_key);
       *entry_ptr = (size_t)(ptr);
       return;
     }

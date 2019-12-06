@@ -1,0 +1,74 @@
+To access the runtime funtion cycle counter, you can instrument following code to your source-code-under-test. (RISC-V ver.)
+
+//insert in GLOBAL
+#ifdef __FUNC_CYCLE
+  //kenny performance counter
+  //shall be in global
+  unsigned long sldc_cycle = 0; //__softboundcets_spatial_load_dereference_check
+  unsigned long ssdc_cycle = 0; //__softboundcets_spatial_store_dereference_check
+  unsigned long tldc_cycle = 0; //__softboundcets_temporal_load_dereference_check
+  unsigned long tsdc_cycle = 0; //__softboundcets_temporal_store_dereference_check
+  unsigned long mdl_cycle =  0; //__softboundcets_metadata_load
+  unsigned long mds_cycle =  0; //__softboundcets_metadata_store
+  unsigned long sls_cycle =  0; //__softboundcets_store_lock_shadow
+  unsigned long sks_cycle =  0; //__softboundcets_store_key_shadow
+  unsigned long sbds_cycle = 0; //__softboundcets_store_bound_shadow
+  unsigned long sbas_cycle = 0; //__softboundcets_store_base_shadow
+  unsigned long lls_cycle =  0; //__softboundcets_load_lock_shadow
+  unsigned long lks_cycle =  0; //__softboundcets_load_key_shadow
+  unsigned long lbds_cycle = 0; //__softboundcets_load_bound_shadow
+  unsigned long lbas_cycle = 0; //__softboundcets_load_base_shadow
+  unsigned long mcpk_cycle = 0; //__softboundcets_memcopy_check
+  unsigned long cpmt_cycle = 0; //__softboundcets_copy_metadata
+  unsigned long dsss_cycle = 0; //__softboundcets_deallocate_shadow_stack_space
+  unsigned long asss_cycle = 0; //__softboundcets_allocate_shadow_stack_space
+  unsigned long smd_cycle = 0; //__softboundcets_stack_memory_deallocation
+  unsigned long sma_cycle = 0; //__softboundcets_stack_memory_allocation
+#endif
+
+//kenny add risc-v cycle counter
+unsigned long read_cycles(void)
+{
+  unsigned long cycles;
+  asm volatile ("rdcycle %0" : "=r" (cycles));
+  return cycles;
+}
+
+//===============================================================================
+
+
+//insert in main function of Program-under-test
+
+  /* kenny use read_cycles() for RISC-V cycle counter */
+  //beginning of the program
+  unsigned long start, end;
+  start = read_cycles();
+
+  ...
+
+  //end of program
+  end = read_cycles(); //#kenny
+  printf("%lu rdcycles\n", end - start);
+  #ifdef __FUNC_CYCLE
+  printf("__softboundcets_spatial_load_dereference_check: %lu\n", sldc_cycle);
+  printf("__softboundcets_spatial_store_dereference_check: %lu\n", ssdc_cycle);
+  printf("__softboundcets_temporal_load_dereference_check: %lu\n", tldc_cycle);
+  printf("__softboundcets_temporal_store_dereference_check: %lu\n", tsdc_cycle);
+  printf("__softboundcets_metadata_load: %lu\n", mdl_cycle);
+  printf("__softboundcets_metadata_store: %lu\n", mds_cycle);
+  printf("__softboundcets_store_lock_shadow: %lu\n", sls_cycle);
+  printf("__softboundcets_store_key_shadow: %lu\n", sks_cycle);
+  printf("__softboundcets_store_bound_shadow: %lu\n", sbds_cycle);
+  printf("__softboundcets_store_base_shadow: %lu\n", sbas_cycle);
+  printf("__softboundcets_load_lock_shadow: %lu\n", lls_cycle);
+  printf("__softboundcets_load_key_shadow: %lu\n", lks_cycle);
+  printf("__softboundcets_load_bound_shadow: %lu\n", lbds_cycle);
+  printf("__softboundcets_load_base_shadow: %lu\n", lbas_cycle);
+  printf("__softboundcets_memcopy_check: %lu\n", mcpk_cycle);
+  printf("__softboundcets_copy_metadata: %lu\n", cpmt_cycle);
+  printf("__softboundcets_deallocate_shadow_stack_space: %lu\n", mcpk_cycle);
+  printf("__softboundcets_allocate_shadow_stack_space: %lu\n", cpmt_cycle);
+  printf("__softboundcets_stack_memory_deallocation: %lu\n", smd_cycle);
+  printf("__softboundcets_stack_memory_allocation: %lu\n", sma_cycle);
+  #endif
+			 
