@@ -1609,8 +1609,8 @@ __WEAK_INLINE void __softboundcets_check_remove_from_free_map(size_t ptr_key, vo
    addr = addr + val;
 
    //kenny debugged to disable temporal safety
-   __softboundcets_metadata_load((void*) addr, base, bound);   
-   //__softboundcets_metadata_load((void*) addr, base, bound, key, lock);
+   //__softboundcets_metadata_load((void*) addr, base, bound);   
+   __softboundcets_metadata_load((void*) addr, base, bound, key, lock);
    
  }
 
@@ -1625,8 +1625,8 @@ __WEAK_INLINE void __softboundcets_check_remove_from_free_map(size_t ptr_key, vo
    addr = addr + val;
 
    //kenny debugged to disable temporal safety
-   __softboundcets_metadata_store((void*)addr, base, bound);
-   //__softboundcets_metadata_store((void*)addr, base, bound, key, lock);
+   //__softboundcets_metadata_store((void*)addr, base, bound);
+   __softboundcets_metadata_store((void*)addr, base, bound, key, lock);
    
  }
 
