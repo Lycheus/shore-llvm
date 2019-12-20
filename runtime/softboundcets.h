@@ -196,33 +196,45 @@ static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 32 * (size_t)
 static const size_t __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES = ((size_t) 4 * (size_t) 1024 * (size_t) 1024);
 
 #else
-//kenny limit the size of temporal entries
-//static const size_t __SOFTBOUNDCETS_N_TEMPORAL_ENTRIES = ((size_t) 64*(size_t) 1024 * (size_t) 1024);
-static const size_t __SOFTBOUNDCETS_N_TEMPORAL_ENTRIES = ((size_t) 1024); //Set to 1024 entries in order to fit inside the FPGA Memory (segfault)
-//static const size_t __SOFTBOUNDCETS_N_TEMPORAL_ENTRIES = ((size_t) 750); 
+//original sbcets setting
+static const size_t __SOFTBOUNDCETS_N_TEMPORAL_ENTRIES = ((size_t) 64*(size_t) 1024 * (size_t) 1024);
 static const size_t __SOFTBOUNDCETS_LOWER_ZERO_POINTER_BITS = 3;
 static const size_t __SOFTBOUNDCETS_N_STACK_TEMPORAL_ENTRIES = ((size_t) 1024 * (size_t) 64);
 static const size_t __SOFTBOUNDCETS_N_GLOBAL_LOCK_SIZE = ((size_t) 1024 * (size_t) 32);
-
 // 2^23 entries each will be 8 bytes each 
 static const size_t __SOFTBOUNDCETS_TRIE_PRIMARY_TABLE_ENTRIES = ((size_t) 8*(size_t) 1024 * (size_t) 1024);
-//kenny change to fit the RISC-V 39 bit virtial address space
-// 2^20 entries each will be 8 bytes each 
-//static const size_t __SOFTBOUNDCETS_TRIE_PRIMARY_TABLE_ENTRIES = ((size_t) 1*(size_t) 1024 * (size_t) 1024);
-
 static const size_t __SOFTBOUNDCETS_SHADOW_STACK_ENTRIES = ((size_t) 128 * (size_t) 32 );
+// 256 Million simultaneous objects
+static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 32 * (size_t) 1024* (size_t) 1024);
+// each secondary entry has 2^ 22 entries  
+static const size_t __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES = ((size_t) 4 * (size_t) 1024 * (size_t) 1024);
 
-/* 256 Million simultaneous objects */
-//static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 32 * (size_t) 1024* (size_t) 1024);
-//static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 375);
-static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 1024); //Set to 1024 entries in order to fit inside the FPGA Memory (segfault)
+//kenny limit the size of temporal entries for FPGA
+/*
+static const size_t __SOFTBOUNDCETS_N_TEMPORAL_ENTRIES = ((size_t) 1024 * (size_t)1024); //Set to 1024 entries in order to fit inside the FPGA Memory (segfault)
+static const size_t __SOFTBOUNDCETS_LOWER_ZERO_POINTER_BITS = 3;
+static const size_t __SOFTBOUNDCETS_N_STACK_TEMPORAL_ENTRIES = ((size_t) 1024 * (size_t) 64);
+static const size_t __SOFTBOUNDCETS_N_GLOBAL_LOCK_SIZE = ((size_t) 1024 * (size_t) 32);
+static const size_t __SOFTBOUNDCETS_TRIE_PRIMARY_TABLE_ENTRIES = ((size_t) 8*(size_t) 1024 * (size_t) 1024);
+//static const size_t __SOFTBOUNDCETS_TRIE_PRIMARY_TABLE_ENTRIES = ((size_t) 4*(size_t) 1024 * (size_t) 1024);
+static const size_t __SOFTBOUNDCETS_SHADOW_STACK_ENTRIES = ((size_t) 128 * (size_t) 32 );
+static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 32 * (size_t) 1024* (size_t) 1024);
+//static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 16 * (size_t) 1024* (size_t) 1024);
+static const size_t __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES = ((size_t) 4 * (size_t) 1024 * (size_t) 1024);
+//static const size_t __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES = ((size_t) 2 * (size_t) 1024 * (size_t) 1024);
+*/
 
-// each secondary entry has 2^ 22 entries 
-static const size_t __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES = ((size_t) 4 * (size_t) 1024 * (size_t) 1024); 
-//kenny change to fit the RISC-V 39 bit virtial address space
-// each secondary entry has 2^19 entries 
-//static const size_t __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES = ((size_t) 1 * (size_t) 512 * (size_t) 1024);
-
+//kenny try larget table size for dijkstra
+/*
+static const size_t __SOFTBOUNDCETS_N_TEMPORAL_ENTRIES = ((size_t) 128*(size_t) 1024 * (size_t) 1024);
+static const size_t __SOFTBOUNDCETS_LOWER_ZERO_POINTER_BITS = 3;
+static const size_t __SOFTBOUNDCETS_N_STACK_TEMPORAL_ENTRIES = ((size_t) 1024 * (size_t) 128);
+static const size_t __SOFTBOUNDCETS_N_GLOBAL_LOCK_SIZE = ((size_t) 1024 * (size_t) 64);
+static const size_t __SOFTBOUNDCETS_TRIE_PRIMARY_TABLE_ENTRIES = ((size_t) 16*(size_t) 1024 * (size_t) 1024);
+static const size_t __SOFTBOUNDCETS_SHADOW_STACK_ENTRIES = ((size_t) 128 * (size_t) 64 );
+static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 64 * (size_t) 1024* (size_t) 1024);
+static const size_t __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES = ((size_t) 8 * (size_t) 1024 * (size_t) 1024);
+*/
 #endif
 
 //kenny try to force inline
@@ -1596,11 +1608,10 @@ __WEAK_INLINE void __softboundcets_check_remove_from_free_map(size_t ptr_key, vo
    size_t addr = (size_t) addr_of_ptr;
    addr = addr + val;
 
-   __softboundcets_metadata_load((void*) addr, base, bound, key, lock);
-
    //kenny debugged to disable temporal safety
-   //__softboundcets_metadata_load((void*) addr, base, bound);   
-
+   __softboundcets_metadata_load((void*) addr, base, bound);   
+   //__softboundcets_metadata_load((void*) addr, base, bound, key, lock);
+   
  }
 
  __METADATA_INLINE void __softboundcets_metadata_store_vector(void* addr_of_ptr, 
@@ -1613,10 +1624,9 @@ __WEAK_INLINE void __softboundcets_check_remove_from_free_map(size_t ptr_key, vo
    size_t addr = (size_t) addr_of_ptr;
    addr = addr + val;
 
-   __softboundcets_metadata_store((void*)addr, base, bound, key, lock);
-
    //kenny debugged to disable temporal safety
-   //__softboundcets_metadata_store((void*)addr, base, bound);
+   __softboundcets_metadata_store((void*)addr, base, bound);
+   //__softboundcets_metadata_store((void*)addr, base, bound, key, lock);
    
  }
 

@@ -1,13 +1,13 @@
 all: softboundcets_rt_riscv 
 
-CFLAGS=-Wall -pedantic -O3 -D__SOFTBOUNDCETS_SPATIAL_TEMPORAL ##-D__SOFTBOUNDCETS_DEBUG ##-D__FUNC_CYCLE 
+#CFLAGS=-Wall -pedantic -O3 -D__SOFTBOUNDCETS_SPATIAL_TEMPORAL #-D__FUNC_CYCLE ##-D__SOFTBOUNDCETS_DEBUG
 #CFLAGS=-Wall -pedantic -O3 -D__SOFTBOUNDCETS_SPATIAL_TEMPORAL
+CFLAGS=-Wall -pedantic -O3 -D__SOFTBOUNDCETS_SPATIAL -Wno-gnu-statement-expression
 
-#CFLAGS=-Wall -pedantic -O3 -D__SOFTBOUNDCETS_SPATIAL
 # kenny modify to disable temporal safety
 ARFLAGS=-rcs
 
-SOFTBOUND_CLANG=/home/lycheus/SoftBoundCETS-3.9/build/bin/clang
+#SOFTBOUND_CLANG=/home/lycheus/SoftBoundCETS-3.9/build/bin/clang
 #RISCV_GCC=/home/lycheus/git/riscv/_install/bin/clang
 
 # If LLVM_GOLD is set, also build a library for use with LTO
@@ -21,15 +21,6 @@ all: softboundcets_rt_lto
 endif
 
 softboundcets_rt_riscv: softboundcets.h softboundcets-checks.c softboundcets.c softboundcets-wrappers.c
-	#$(SOFTBOUND_CLANG) $(CFLAGS) -emit-llvm -S softboundcets-checks.c
-	#$(SOFTBOUND_CLANG) $(CFLAGS) -emit-llvm -S softboundcets.c
-	#$(SOFTBOUND_CLANG) $(CFLAGS) -emit-llvm -S softboundcets-wrappers.c
-	#llc -march=riscv64 -mtriple=riscv64-unknown-linux-gnu softboundcets-checks.ll
-	#llc -march=riscv64 -mtriple=riscv64-unknown-linux-gnu softboundcets.ll
-	#llc -march=riscv64 -mtriple=riscv64-unknown-linux-gnu softboundcets-wrappers.ll
-	#riscv64-unknown-linux-gnu-gcc -c -march=rv64gc -mabi=lp64 softboundcets-checks.s
-	#riscv64-unknown-linux-gnu-gcc -c -march=rv64gc -mabi=lp64 softboundcets.s
-	#riscv64-unknown-linux-gnu-gcc -c -march=rv64gc -mabi=lp64 softboundcets-wrappers.s
 	clang $(CFLAGS) -c softboundcets-checks.c -o softboundcets-checks.o
 	clang $(CFLAGS) -c softboundcets.c -o softboundcets.o
 	clang $(CFLAGS) -c softboundcets-wrappers.c -o softboundcets-wrappers.o
@@ -48,5 +39,10 @@ softboundcets_rt_lto: softboundcets.h softboundcets-checks.c softboundcets.c sof
 	clang $(CFLAGS) -flto -c softboundcets-wrappers.c -o lto/softboundcets-wrappers.lto.o
 	ar --plugin=$(LLVM_GOLD) $(ARFLAGS) lto/libsoftboundcets_rt.a lto/softboundcets.lto.o lto/softboundcets-checks.lto.o lto/softboundcets-wrappers.lto.o
 
+softboundcets_rt_bc: softboundcets.h softboundcets-checks.c softboundcets.c softboundcets-wrappers.c
+	clang $(CFLAGS) -emit-llvm -c softboundcets-checks.c -o softboundcets-checks.bc
+	clang $(CFLAGS) -emit-llvm -c softboundcets.c -o softboundcets.bc
+	clang $(CFLAGS) -emit-llvm -c softboundcets-wrappers.c -o softboundcets-wrappers.bc
+
 clean:
-	rm -rf *.o *.a *.ll *.s  *~ lto/
+	rm -rf *.o *.a *.ll *.s  *~ lto/ *.bc
