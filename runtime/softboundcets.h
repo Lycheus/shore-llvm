@@ -197,6 +197,7 @@ static const size_t __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES = ((size_t) 4 *
 
 #else
 //original sbcets setting
+/*
 static const size_t __SOFTBOUNDCETS_N_TEMPORAL_ENTRIES = ((size_t) 64*(size_t) 1024 * (size_t) 1024);
 static const size_t __SOFTBOUNDCETS_LOWER_ZERO_POINTER_BITS = 3;
 static const size_t __SOFTBOUNDCETS_N_STACK_TEMPORAL_ENTRIES = ((size_t) 1024 * (size_t) 64);
@@ -208,9 +209,9 @@ static const size_t __SOFTBOUNDCETS_SHADOW_STACK_ENTRIES = ((size_t) 128 * (size
 static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 32 * (size_t) 1024* (size_t) 1024);
 // each secondary entry has 2^ 22 entries  
 static const size_t __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES = ((size_t) 4 * (size_t) 1024 * (size_t) 1024);
+*/
 
 //kenny limit the size of temporal entries for FPGA
-/*
 static const size_t __SOFTBOUNDCETS_N_TEMPORAL_ENTRIES = ((size_t) 1024 * (size_t)1024); //Set to 1024 entries in order to fit inside the FPGA Memory (segfault)
 static const size_t __SOFTBOUNDCETS_LOWER_ZERO_POINTER_BITS = 3;
 static const size_t __SOFTBOUNDCETS_N_STACK_TEMPORAL_ENTRIES = ((size_t) 1024 * (size_t) 64);
@@ -222,7 +223,6 @@ static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 32 * (size_t)
 //static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 16 * (size_t) 1024* (size_t) 1024);
 static const size_t __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES = ((size_t) 4 * (size_t) 1024 * (size_t) 1024);
 //static const size_t __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES = ((size_t) 2 * (size_t) 1024 * (size_t) 1024);
-*/
 
 //kenny try larget table size for dijkstra
 /*
@@ -733,13 +733,21 @@ __softboundcets_spatial_load_dereference_check(void *base, void *bound,
   asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
 #endif
 
+  /* kenny replace the software bound checking into hardware bound setting
   if ((ptr < base) || ((void*)((char*) ptr + size_of_type) > bound)) {
 
     __softboundcets_printf("In LDC, base=%zx, bound=%zx, ptr=%zx\n",
     			   base, bound, ptr);    
     __softboundcets_abort();
   }
+  */
+  //kenny hardware bound setting
+  asm volatile ("bndr %0, %1, %2"
+		: "=r" (ptr)
+		: "r" (base), "r" (bound)
+		: /*no clobbers*/);
 
+  
 #ifdef __FUNC_CYCLE
   asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
   sldc_cycle += rdcycle_end - rdcycle_start;
@@ -761,12 +769,20 @@ __softboundcets_spatial_store_dereference_check(void *base,
   asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
   #endif
 
+  /* kenny replace the software bound checking into hardware bound settign
   if ((ptr < base) || ((void*)((char*)ptr + size_of_type) > bound)) {
     __softboundcets_printf("In Store Dereference Check, base=%p, bound=%p, ptr=%p, size_of_type=%zx, ptr+size=%p\n",
                               base, bound, ptr, size_of_type, (char*)ptr+size_of_type); 
     
     __softboundcets_abort();
   }
+  */
+  //kenny hardware bound setting
+  asm volatile ("bndr %0, %1, %2"
+		: "=r" (ptr)
+		: "r" (base), "r" (bound)
+		: /*no clobbers*/);
+  
 #ifdef __FUNC_CYCLE
   asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
   ssdc_cycle += rdcycle_end - rdcycle_start;
@@ -1609,8 +1625,8 @@ __WEAK_INLINE void __softboundcets_check_remove_from_free_map(size_t ptr_key, vo
    addr = addr + val;
 
    //kenny debugged to disable temporal safety
-   //__softboundcets_metadata_load((void*) addr, base, bound);   
-   __softboundcets_metadata_load((void*) addr, base, bound, key, lock);
+   __softboundcets_metadata_load((void*) addr, base, bound);   
+   //__softboundcets_metadata_load((void*) addr, base, bound, key, lock);
    
  }
 
@@ -1625,8 +1641,8 @@ __WEAK_INLINE void __softboundcets_check_remove_from_free_map(size_t ptr_key, vo
    addr = addr + val;
 
    //kenny debugged to disable temporal safety
-   //__softboundcets_metadata_store((void*)addr, base, bound);
-   __softboundcets_metadata_store((void*)addr, base, bound, key, lock);
+   __softboundcets_metadata_store((void*)addr, base, bound);
+   //__softboundcets_metadata_store((void*)addr, base, bound, key, lock);
    
  }
 

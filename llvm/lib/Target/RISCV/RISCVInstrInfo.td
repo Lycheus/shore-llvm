@@ -319,6 +319,8 @@ class BND_rr<bits<7> funct7, bits<3> funct3, string opcodestr>
     : RVInstR<funct7, funct3, OPC_JALR, (outs GPR:$rd), (ins GPR:$rs1, GPR:$rs2),
               opcodestr, "$rd, $rs1, $rs2">;
 
+//  : RVInstR<funct7, funct3, OPC_JALR, (outs), (ins GPR:$rs3, GPR:$rs1, GPR:$rs2),
+
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
 class BND_ri<bits<3> funct3, string opcodestr>
     : RVInstI<funct3, OPC_JALR, (outs GPR:$rd), (ins GPR:$rs1, simm12:$imm12),
@@ -409,10 +411,10 @@ def AND  : ALU_rr<0b0000000, 0b111, "and">;
 // These use OPC_JALR
 def BNDR : BND_rr<0b0000000, 0b001, "bndr">;
 def BNDI : BND_ri<0b100, "bndi">;
-def LBDU : BND_ri<0b101, "lbdu">; //might have bug because mayLoad = 0
-def LBDL : BND_ri<0b110, "lbdl">; //might have bug because mayLoad = 0
-def SBDU : BND_ri<0b010, "sbdu">; //might have bug because mayStore = 0
-def SBDL : BND_ri<0b011, "sbdl">; //might have bug because mayStore = 0
+def LBDU : BND_ri<0b101, "lbdu">; //kenny might have bug because mayLoad = 0
+def LBDL : BND_ri<0b110, "lbdl">; //kenny might have bug because mayLoad = 0
+def SBDU : BND_ri<0b010, "sbdu">; //kenny might have bug because mayStore = 0
+def SBDL : BND_ri<0b011, "sbdl">; //kenny might have bug because mayStore = 0
 
 // These use OPC_LOAD_BND
 def LB_B : BND_Load_ri<0b000, "lb.b">;

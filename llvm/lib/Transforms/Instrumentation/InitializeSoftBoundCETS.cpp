@@ -75,8 +75,8 @@ class InitializeSoftBoundCETS: public ModulePass {
   void constructAuxillaryFunctionHandlers(Module &);
   InitializeSoftBoundCETS(): ModulePass(ID){        
     spatial_safety = true;
-    temporal_safety = true; //kenny enable temporal safety
-    //temporal_safety = false; //kenny disable temporal safety
+    //temporal_safety = true; //kenny enable temporal safety
+    temporal_safety = false; //kenny disable temporal safety
     // printf ("InitializeSoftBoundCETS::contructor::temporal_safety = %d\n", temporal_safety);
   }
   
@@ -343,17 +343,14 @@ void InitializeSoftBoundCETS:: constructCheckHandlers(Module & module){
     newGVCtor->takeName (GVCtor);
     GVCtor->eraseFromParent ();
   }
-
-
-
 }
 
 
 bool InitializeSoftBoundCETS:: runOnModule (Module& module){
 
   spatial_safety = true;
-  temporal_safety = true; //kenny enable temporal safety
-  //temporal_safety = false; //kenny disable temporal safety
+  //temporal_safety = true; //kenny enable temporal safety
+  temporal_safety = false; //kenny disable temporal safety
 
   if(disable_spatial_safety){
     spatial_safety = false;

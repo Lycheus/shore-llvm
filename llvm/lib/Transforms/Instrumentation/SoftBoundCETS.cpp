@@ -55,6 +55,7 @@
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/GetElementPtrTypeIterator.h"
+#include "llvm/IR/InlineAsm.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/STLExtras.h"
@@ -453,6 +454,7 @@ class SoftBoundCETS: public ModulePass {
   Value*  getSizeOfType(Type*);
   
   Value* castToVoidPtr(Value*, Instruction*);
+  Value* castToVoidPtr2(Value*, Instruction*, const llvm::Twine&);
   bool checkGEPOfInterestSB(GetElementPtrInst*);
   void handleReturnInst(ReturnInst*);    
   
@@ -467,8 +469,8 @@ class SoftBoundCETS: public ModulePass {
  SoftBoundCETS()
    : ModulePass(ID){
     spatial_safety= true;
-    temporal_safety=true; //kenny enable temporal safety
-    //temporal_safety=false; //kenny disable temporal safety
+    //temporal_safety=true; //kenny enable temporal safety
+    temporal_safety=false; //kenny disable temporal safety
     //printf ("SoftBoundCETS::constructor::temporal_safety = %d\n", temporal_safety);
     
     //    initializeSoftBoundCETS(*PassRegistry::getPassRegistry());
@@ -1069,7 +1071,7 @@ SoftBoundCETS::addMemoryAllocationCall(Function* func,
   SmallVector<Value*, 8> args;
   Instruction* first_inst_func = cast<Instruction>(func->begin()->begin());
   AllocaInst* lock_alloca = new AllocaInst(m_void_ptr_type, 
-											m_void_ptr_type->getPointerAddressSpace(), //kenny add for addrspace, previous LLVM version dont have this aug.
+					   m_void_ptr_type->getPointerAddressSpace(), //kenny add for addrspace, previous LLVM version dont have this aug.
                                            "lock_alloca", first_inst_func);
   /*kenny Debugging purpose*/
   printf("kenny: if you see this section of code, beware the modification kenny made to merge SoftboundCETS-3.9 to LLVM8.0. @SoftboundCETS.cpp Line:%d\n", __LINE__);
@@ -1570,6 +1572,19 @@ SoftBoundCETS:: castToVoidPtr(Value* operand, Instruction* insert_at) {
   if (operand->getType() != m_void_ptr_type) {
     cast_bitcast = new BitCastInst(operand, m_void_ptr_type,
                                    "bitcast",
+                                   insert_at);
+  }
+  return cast_bitcast;
+}
+
+//Kenny overloading a new cast for showing base and bound in LLVM IR
+Value* 
+SoftBoundCETS:: castToVoidPtr2(Value* operand, Instruction* insert_at, const Twine &NameStr = "") {
+
+  Value* cast_bitcast = operand;
+  if (operand->getType() != m_void_ptr_type) {
+    cast_bitcast = new BitCastInst(operand, m_void_ptr_type,
+                                   NameStr,
                                    insert_at);
   }
   return cast_bitcast;
@@ -3375,6 +3390,20 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
   }
   else{    
     CallInst::Create(m_spatial_store_dereference_check, args, "", load_store);
+
+    //kenny inline binding the base/bound to the register containing pointer for store
+    FunctionType *Fty = FunctionType::get(Type::getVoidTy(load_store->getType()->getContext()), false);
+    StringRef asmString = "bndr $0, $1, $2";
+    StringRef constrains = "r, r, r";
+    SmallVector<Value*, 8> asm_args;
+    asm_args.push_back(pointer_operand);
+    asm_args.push_back(tmp_base);
+    asm_args.push_back(tmp_bound);
+    llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
+    llvm::InlineAsm *IA = llvm::InlineAsm::get(Fty, asmString, constrains, true, false, asmDialect);
+    //llvm::CallInst *Result = Builder->CreateCall(IA, args);
+    //Result->addAttribute(llvm::AttributeSet::FunctionIndex, llvm::Attribute::NoUnwind);
+    CallInst::Create(IA, asm_args, "", load_store);
   }
 
   return;
@@ -4192,7 +4221,8 @@ void SoftBoundCETS::handleAlloca (AllocaInst* alloca_inst,
     //    Value* alloca_inst_temp_value = alloca_inst;
     BitCastInst* ptr = new BitCastInst(alloca_inst, ty1, alloca_inst->getName(), next);
     
-    Value* ptr_base = castToVoidPtr(alloca_inst_value, next);
+    //Value* ptr_base = castToVoidPtr(alloca_inst_value, next);
+    Value* ptr_base = castToVoidPtr2(alloca_inst_value, next, "base"); //Kenny annote the virt reg for readability
     
     Value* intBound;
     
@@ -4216,7 +4246,8 @@ void SoftBoundCETS::handleAlloca (AllocaInst* alloca_inst,
                                                        next);
     Value *bound_ptr = gep;
     
-    Value* ptr_bound = castToVoidPtr(bound_ptr, next);
+    //Value* ptr_bound = castToVoidPtr(bound_ptr, next);
+    Value* ptr_bound = castToVoidPtr2(bound_ptr, next, "bound"); //Kenny annote the virt reg for readability
     
     associateBaseBound(alloca_inst_value, ptr_base, ptr_bound);
   }
@@ -5492,8 +5523,8 @@ void SoftBoundCETS::identifyOriginalInst (Function * func) {
 bool SoftBoundCETS::runOnModule(Module& module) {
 
   spatial_safety = true;
-  temporal_safety = true; //kenny enable temporal safety
-  //temporal_safety = false; //kenny disable temporal safety
+  //temporal_safety = true; //kenny enable temporal safety
+  temporal_safety = false; //kenny disable temporal safety
 
 
   if(disable_spatial_safety){
