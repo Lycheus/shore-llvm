@@ -247,6 +247,10 @@ void InitializeSoftBoundCETS:: constructCheckHandlers(Module & module){
 
   Type* void_ptr_ty = PointerType::getUnqual(Type::getInt8Ty(module.getContext()));
   Type* size_ty = Type::getInt64Ty(module.getContext());
+
+  module.getOrInsertFunction("__RISCV_bounded_load", void_ty);
+  
+  module.getOrInsertFunction("__RISCV_bounded_store", void_ty);
   
   module.getOrInsertFunction("__softboundcets_spatial_load_dereference_check",
                              void_ty, void_ptr_ty, void_ptr_ty, 

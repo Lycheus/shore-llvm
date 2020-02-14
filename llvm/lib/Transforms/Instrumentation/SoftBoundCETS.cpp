@@ -113,6 +113,9 @@ class SoftBoundCETS: public ModulePass {
 
   bool spatial_safety;
   bool temporal_safety;
+
+  Function* m_bounded_load;
+  Function* m_bounded_store;
   
   Function* m_introspect_metadata;
   Function* m_copy_metadata;
@@ -738,6 +741,13 @@ SoftBoundCETS:: getAssociatedFuncLock(Value* PointerInst){
 
 void SoftBoundCETS::initializeSoftBoundVariables(Module& module) {
 
+  m_bounded_load = module.getFunction("__RISCV_bounded_load");
+      assert(__RISCV_bounded_load && 
+           "__RISCV_bounded_load function type null?");
+  m_bounded_store = module.getFunction("__RISCV_bounded_store");
+      assert(__RISCV_bounded_store && 
+           "__RISCV_bounded_store function type null?");
+  
   if(spatial_safety){
     m_spatial_load_dereference_check = 
       module.getFunction("__softboundcets_spatial_load_dereference_check");
@@ -1390,8 +1400,10 @@ bool SoftBoundCETS::isFuncDefSoftBound(const std::string &str) {
     m_func_def_softbound["__shrinkBounds"] = true;
     m_func_def_softbound["__softboundcets_memcopy_check"] = true;
 
+    m_func_def_softbound["__RISCV_bounded_load"] = true;
+    m_func_def_softbound["__RISCV_bounded_store"] = true;
+    
     m_func_def_softbound["__softboundcets_spatial_load_dereference_check"] = true;
-
     m_func_def_softbound["__softboundcets_spatial_store_dereference_check"] = true;
     m_func_def_softbound["__softboundcets_spatial_call_dereference_check"] = true;
     m_func_def_softbound["__softboundcets_temporal_load_dereference_check"] = true;
@@ -3384,13 +3396,29 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
   Value* size_of_type = getSizeOfType(pointer_operand_type);
   args.push_back(size_of_type);
 
+  //Annotate the ld/st instr to use speicalized bound checking ld/st
+  LLVMContext& C = load_store->getContext();
+  MDNode* N = MDNode::get(C, MDString::get(C, "use bounded load_store"));
+  
   if(isa<LoadInst>(load_store)){
             
-    CallInst::Create(m_spatial_load_dereference_check, args, "", load_store);
+    //CallInst::Create(m_spatial_load_dereference_check, args, "", load_store);
+    //kenny inline binding the base/bound to the register containing pointer for load
+    FunctionType *Fty = FunctionType::get(Type::getVoidTy(load_store->getType()->getContext()), false);
+    StringRef asmString = "bndr $0, $1, $2";
+    StringRef constrains = "r, r, r";
+    SmallVector<Value*, 8> asm_args;
+    asm_args.push_back(pointer_operand);
+    asm_args.push_back(tmp_base);
+    asm_args.push_back(tmp_bound);
+    llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
+    llvm::InlineAsm *IA = llvm::InlineAsm::get(Fty, asmString, constrains, true, false, asmDialect);
+    CallInst::Create(IA, asm_args, "", load_store);
+    CallInst::Create(m_bounded_load, "", load_store);
+    load_store->setMetadata("bounded", N); //annotate the load instr with metadata indicate this ldst shall be bounded.
   }
   else{    
-    CallInst::Create(m_spatial_store_dereference_check, args, "", load_store);
-
+    //CallInst::Create(m_spatial_store_dereference_check, args, "", load_store);
     //kenny inline binding the base/bound to the register containing pointer for store
     FunctionType *Fty = FunctionType::get(Type::getVoidTy(load_store->getType()->getContext()), false);
     StringRef asmString = "bndr $0, $1, $2";
@@ -3401,9 +3429,10 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
     asm_args.push_back(tmp_bound);
     llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
     llvm::InlineAsm *IA = llvm::InlineAsm::get(Fty, asmString, constrains, true, false, asmDialect);
-    //llvm::CallInst *Result = Builder->CreateCall(IA, args);
-    //Result->addAttribute(llvm::AttributeSet::FunctionIndex, llvm::Attribute::NoUnwind);
     CallInst::Create(IA, asm_args, "", load_store);
+    CallInst::Create(m_bounded_store, "", load_store);
+    load_store->setMetadata("bounded", N); //annotate the store instr with metadata indicate this ldst shall be bounded.
+
   }
 
   return;
