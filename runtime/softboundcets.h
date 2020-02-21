@@ -733,20 +733,21 @@ __softboundcets_spatial_load_dereference_check(void *base, void *bound,
   asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
 #endif
 
-  /* kenny replace the software bound checking into hardware bound setting
+
   if ((ptr < base) || ((void*)((char*) ptr + size_of_type) > bound)) {
 
     __softboundcets_printf("In LDC, base=%zx, bound=%zx, ptr=%zx\n",
     			   base, bound, ptr);    
     __softboundcets_abort();
   }
-  */
+  /* kenny replace the software bound checking into hardware bound setting  */
   //kenny hardware bound setting
+  /*
   asm volatile ("bndr %0, %1, %2"
 		: "=r" (ptr)
 		: "r" (base), "r" (bound)
-		: /*no clobbers*/);
-
+		: );
+  */
   
 #ifdef __FUNC_CYCLE
   asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
@@ -769,19 +770,21 @@ __softboundcets_spatial_store_dereference_check(void *base,
   asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
   #endif
 
-  /* kenny replace the software bound checking into hardware bound settign
+
   if ((ptr < base) || ((void*)((char*)ptr + size_of_type) > bound)) {
     __softboundcets_printf("In Store Dereference Check, base=%p, bound=%p, ptr=%p, size_of_type=%zx, ptr+size=%p\n",
                               base, bound, ptr, size_of_type, (char*)ptr+size_of_type); 
     
     __softboundcets_abort();
   }
-  */
+  /* kenny replace the software bound checking into hardware bound settign  */
   //kenny hardware bound setting
+  /*
   asm volatile ("bndr %0, %1, %2"
 		: "=r" (ptr)
 		: "r" (base), "r" (bound)
-		: /*no clobbers*/);
+		: );
+  */
   
 #ifdef __FUNC_CYCLE
   asm volatile ("rdcycle %0" : "=r" (rdcycle_end));

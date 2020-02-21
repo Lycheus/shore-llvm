@@ -3397,9 +3397,10 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
   args.push_back(size_of_type);
 
   //Annotate the ld/st instr to use speicalized bound checking ld/st
+  /*
   LLVMContext& C = load_store->getContext();
   MDNode* N = MDNode::get(C, MDString::get(C, "use bounded load_store"));
-  
+  */
   if(isa<LoadInst>(load_store)){
             
     //CallInst::Create(m_spatial_load_dereference_check, args, "", load_store);
@@ -3414,8 +3415,8 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
     llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
     llvm::InlineAsm *IA = llvm::InlineAsm::get(Fty, asmString, constrains, true, false, asmDialect);
     CallInst::Create(IA, asm_args, "", load_store);
-    CallInst::Create(m_bounded_load, "", load_store);
-    load_store->setMetadata("bounded", N); //annotate the load instr with metadata indicate this ldst shall be bounded.
+    //CallInst::Create(m_bounded_load, "", load_store);
+    //load_store->setMetadata("bounded", N); //annotate the load instr with metadata indicate this ldst shall be bounded.
   }
   else{    
     //CallInst::Create(m_spatial_store_dereference_check, args, "", load_store);
@@ -3430,8 +3431,8 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
     llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
     llvm::InlineAsm *IA = llvm::InlineAsm::get(Fty, asmString, constrains, true, false, asmDialect);
     CallInst::Create(IA, asm_args, "", load_store);
-    CallInst::Create(m_bounded_store, "", load_store);
-    load_store->setMetadata("bounded", N); //annotate the store instr with metadata indicate this ldst shall be bounded.
+    //CallInst::Create(m_bounded_store, "", load_store);
+    //load_store->setMetadata("bounded", N); //annotate the store instr with metadata indicate this ldst shall be bounded.
 
   }
 
