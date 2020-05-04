@@ -1684,6 +1684,8 @@ void SoftBoundCETS::addStoreBaseBoundFunc(Value* pointer_dest,
     args.push_back(pointer_key);
     args.push_back(pointer_lock);
   }
+
+  //kenny metadata store shall be handle here using the new RISC-V instruction sbdl/sbdu
   CallInst::Create(m_store_base_bound_func, args, "", insert_at);
 }
 
@@ -3401,20 +3403,19 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
 
   //FunctionType *Fty = FunctionType::get(Type::getVoidTy(load_store->getType()->getContext()), false);
   FunctionType *Fty = FunctionType::get(pointer_operand_type, false);
-  StringRef asmString = "bndr $0, $1, $2\n\tmv $0, $3";
-  //StringRef asmString2 = "mov $0, $1";
+  //StringRef asmString = "bndr $0, $1, $2\n\tmv $0, $3";
+  //StringRef asmString = "mv $0, $3\n\tbndr $0, $1, $2";
+  //StringRef constraints = "=r,r,r,r";
 
-  StringRef constraints = "=r,r,r,r";
-  //StringRef constraints2 = "=r,r";
-
+  StringRef asmString = "bndr $0, $1, $2";
+  StringRef constraints = "=r,r,r,0";
+  
   SmallVector<Value*, 8> asm_args1;
-  //SmallVector<Value*, 8> asm_args2;
 
+  //asm_args1.push_back(pointer_operand);
   asm_args1.push_back(tmp_base);
   asm_args1.push_back(tmp_bound);
   asm_args1.push_back(pointer_operand);
-  
-  //asm_args2.push_back(pointer_operand);
   
   llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
   
@@ -3422,25 +3423,36 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
 
   //kenny instruments the inline assmebly for bounded load and store.
   if(isa<LoadInst>(load_store)){
+
     //CallInst::Create(m_spatial_load_dereference_check, args, "", load_store);
+
     //kenny inline binding the base/bound to the register containing pointer for load
     llvm::InlineAsm *IA_1 = llvm::InlineAsm::get(Fty, asmString, constraints, true, false, asmDialect);
     //llvm::InlineAsm *IA_2 = llvm::InlineAsm::get(Fty, asmString2, constraints2, true, false, asmDialect);
-    asmcall = CallInst::Create(IA_1, asm_args1, "bounded_t", load_store); //inline assemble to get the base and bound for shadow registers
+
+    //inline assemble to get the base and bound for shadow registers
+    asmcall = CallInst::Create(IA_1, asm_args1, "bounded_t", load_store);
     Value* asmcall_value = asmcall->getCalledValue();
-    Value* load_ptr_operand = load_store->getOperand(1);
+    load_store->setOperand(0, asmcall);
     //load_ptr_operand->replaceAllUsesWith(asmcall_value);
-    //CallInst::Create(IA_2, asm_args2, "", load_store); //second inline assemble to move the correct address into register
-    //CallInst::Create(IA_2, asm_args2, "", load_store->getNextNonDebugInstruction()); //inline assemble after the load instruction
+
+    //inline assemble after the load instruction
+    //second inline assemble to move the correct address into register
+    //CallInst::Create(IA_2, asm_args2, "", load_store);
+    //CallInst::Create(IA_2, asm_args2, "", load_store->getNextNonDebugInstruction());
     //CallInst::Create(m_bounded_load, "", load_store);
-    load_store->setMetadata("bounded_load", N); //annotate the load instr with metadata indicate this ldst shall be bounded.
+
+    //annotate the load instr with metadata indicate this ldst shall be bounded.
+    load_store->setMetadata("bounded_load", N);
   }
   else{    
     //CallInst::Create(m_spatial_store_dereference_check, args, "", load_store);
     //kenny inline binding the base/bound to the register containing pointer for store
     llvm::InlineAsm *IA_1 = llvm::InlineAsm::get(Fty, asmString, constraints, true, false, asmDialect);
     //llvm::InlineAsm *IA_2 = llvm::InlineAsm::get(Fty, asmString2, constraints2, true, false, asmDialect);
-    CallInst::Create(IA_1, asm_args1, "bounded_t", load_store);
+    asmcall = CallInst::Create(IA_1, asm_args1, "bounded_t", load_store);
+    Value* asmcall_value = asmcall->getCalledValue();
+    load_store->setOperand(1, asmcall);
     //CallInst::Create(IA_2, asm_args2, "", load_store);
     //CallInst::Create(m_bounded_store, "", load_store);
     load_store->setMetadata("bounded_store", N); //annotate the store instr with metadata indicate this ldst shall be bounded.
@@ -5262,7 +5274,9 @@ void SoftBoundCETS::insertMetadataLoad(LoadInst* load_inst){
     args.push_back(key_alloca);
     args.push_back(lock_alloca);
   }
-  
+
+
+  //kenny metadata load shall be handled here using RISC-V lbdu/lbdl
   CallInst::Create(m_load_base_bound_func, args, "", insert_at);
       
   if(spatial_safety){
