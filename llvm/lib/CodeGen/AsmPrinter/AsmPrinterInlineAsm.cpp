@@ -36,6 +36,7 @@
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
+
 using namespace llvm;
 
 #define DEBUG_TYPE "asm-printer"
@@ -106,6 +107,7 @@ unsigned AsmPrinter::addInlineAsmDiagBuffer(StringRef AsmStr,
   return BufNum;
 }
 
+unsigned kenny_regnum; //global parameter for tracking bndr first register (bound container)
 
 /// EmitInlineAsm - Emit a blob of inline asm to the output streamer.
 void AsmPrinter::EmitInlineAsm(StringRef Str, const MCSubtargetInfo &STI,
@@ -130,6 +132,41 @@ void AsmPrinter::EmitInlineAsm(StringRef Str, const MCSubtargetInfo &STI,
       !OutStreamer->isIntegratedAssemblerRequired()) {
     emitInlineAsmStart();
     OutStreamer->EmitRawText(Str);
+    //if(!strncmp(Str.data(), "\tbndr", 5))
+    printf("%s\n", Str.data()); //kenny print the bndr string
+    //kenny FIXME: This might reduce security coverage if the bndr is not binding on a0-a7
+    if(!strncmp(Str.data(), "\tbndr a0,", 8))
+      kenny_regnum = 11;
+    if(!strncmp(Str.data(), "\tbndr a1,", 8))
+      kenny_regnum = 12;
+    if(!strncmp(Str.data(), "\tbndr a2,", 8))
+      kenny_regnum = 13;
+    if(!strncmp(Str.data(), "\tbndr a3,", 8))
+      kenny_regnum = 14;
+    if(!strncmp(Str.data(), "\tbndr a4,", 8))
+      kenny_regnum = 15;
+    if(!strncmp(Str.data(), "\tbndr a5,", 8))
+      kenny_regnum = 16;
+    if(!strncmp(Str.data(), "\tbndr a6,", 8))
+      kenny_regnum = 17;
+    if(!strncmp(Str.data(), "\tbndr a7,", 8))
+      kenny_regnum = 18;
+    if(!strncmp(Str.data(), "\tbndr s0,", 8))
+      kenny_regnum = 9;
+    if(!strncmp(Str.data(), "\tbndr s1,", 8))
+      kenny_regnum = 10;
+    if(!strncmp(Str.data(), "\tbndr s2,", 8))
+      kenny_regnum = 19;
+    if(!strncmp(Str.data(), "\tbndr s3,", 8))
+      kenny_regnum = 20;
+    if(!strncmp(Str.data(), "\tbndr s4,", 8))
+      kenny_regnum = 21;
+    if(!strncmp(Str.data(), "\tbndr s5,", 8))
+      kenny_regnum = 22;
+    if(!strncmp(Str.data(), "\tbndr s6,", 8))
+      kenny_regnum = 23;
+    if(!strncmp(Str.data(), "\tbndr s7,", 8))
+      kenny_regnum = 24;
     emitInlineAsmEnd(STI, nullptr);
     return;
   }
@@ -463,6 +500,7 @@ static void EmitGCCInlineAsmStr(const char *AsmStr, const MachineInstr *MI,
   OS << '\n' << (char)0;  // null terminate string.
 }
 
+bool kenny_bounded; //global parameter for bounded load store section
 /// EmitInlineAsm - This method formats and emits the specified machine
 /// instruction that is an inline asm.
 void AsmPrinter::EmitInlineAsm(const MachineInstr *MI) const {
@@ -479,6 +517,15 @@ void AsmPrinter::EmitInlineAsm(const MachineInstr *MI) const {
   // Disassemble the AsmStr, printing out the literal pieces, the operands, etc.
   const char *AsmStr = MI->getOperand(NumDefs).getSymbolName();
 
+  //kenny use inlineasm as tag for bounded load/store
+  if(!strcmp(AsmStr, "#bounded_start")){
+    kenny_bounded = 1;
+  }
+
+  if(!strcmp(AsmStr, "#bounded_end")){
+    kenny_bounded = 0;
+  }
+  
   // If this asmstr is empty, just print the #APP/#NOAPP markers.
   // These are useful to see where empty asm's wound up.
   if (AsmStr[0] == 0) {
@@ -545,7 +592,7 @@ void AsmPrinter::EmitInlineAsm(const MachineInstr *MI) const {
       I += InlineAsm::getNumOperandRegisters(Flags);
     }
   }
-
+  
   if (!RestrRegs.empty()) {
     unsigned BufNum = addInlineAsmDiagBuffer(OS.str(), LocMD);
     auto &SrcMgr = DiagInfo->SrcMgr;

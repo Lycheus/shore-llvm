@@ -1078,7 +1078,7 @@ void AsmPrinter::EmitFunctionBody() {
         HasAnyRealCode = true;
         ++NumInstsInFunction;
       }
-
+    
       // If there is a pre-instruction symbol, emit a label for it here.
       if (MCSymbol *S = MI.getPreInstrSymbol())
         OutStreamer->EmitLabel(S);

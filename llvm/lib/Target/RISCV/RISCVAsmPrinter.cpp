@@ -27,6 +27,7 @@
 #include "llvm/MC/MCSymbol.h"
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/raw_ostream.h"
+
 using namespace llvm;
 
 #define DEBUG_TYPE "asm-printer"
@@ -73,14 +74,78 @@ void RISCVAsmPrinter::EmitToStreamer(MCStreamer &S, const MCInst &Inst) {
 // instructions) auto-generated.
 #include "RISCVGenMCPseudoLowering.inc"
 
+extern bool kenny_bounded; //bounded flag set in AsmPrinterInlineAsm.cpp L484 EmitInlineAsm()
+extern unsigned kenny_regnum;
 void RISCVAsmPrinter::EmitInstruction(const MachineInstr *MI) {
   // Do any auto-generated pseudo lowerings.
   if (emitPseudoExpansionLowering(*OutStreamer, MI))
     return;
 
+  //kenny transform the standard load and store into bounded load and store depend on bounded flag
+  if(kenny_bounded){
+    MCInst BndInst;
+    LowerRISCVMachineInstrToMCInst(MI, BndInst, *this);
+    if(MI->mayLoad()){
+      //printf("load_reg: %d, %d, %d, %d.\nbnd_reg: %d\n", BndInst.getOperand(0).getReg(), BndInst.getOperand(1).getReg(), BndInst.getOperand(2).getReg(), BndInst.getOperand(3).getReg(), kenny_regnum);
+      if(BndInst.getOperand(1).getReg()==kenny_regnum){
+	switch(BndInst.getOpcode())
+	  {
+	  case RISCV::LB:
+	    BndInst.setOpcode(RISCV::LB_B);
+	    break;
+	  case RISCV::LH:
+	    BndInst.setOpcode(RISCV::LH_B);
+	    break;
+	  case RISCV::LW:
+	    BndInst.setOpcode(RISCV::LW_B);
+	    break;
+	  case RISCV::LD:
+	    BndInst.setOpcode(RISCV::LD_B);
+	    break;
+	  case RISCV::LBU:
+	    BndInst.setOpcode(RISCV::LBU_B);
+	    break;
+	  case RISCV::LHU:
+	    BndInst.setOpcode(RISCV::LHU_B);
+	    break;
+	  case RISCV::LWU:
+	    BndInst.setOpcode(RISCV::LWU_B);
+	    break;
+	  default:
+	    break;
+	  }
+      }
+    }
+    if(MI->mayStore()){
+      //printf("store_reg: %d, %d, %d, %d.\nbnd_reg: %d\n", BndInst.getOperand(0).getReg(), BndInst.getOperand(1).getReg(), BndInst.getOperand(2).getReg(), BndInst.getOperand(3).getReg(), kenny_regnum);
+      if(BndInst.getOperand(1).getReg()==kenny_regnum){
+	switch(BndInst.getOpcode())
+	  {
+	  case RISCV::SB:
+	    BndInst.setOpcode(RISCV::SB_B);
+	    break;
+	  case RISCV::SH:
+	    BndInst.setOpcode(RISCV::SH_B);
+	    break;
+	  case RISCV::SW:
+	    BndInst.setOpcode(RISCV::SW_B);
+	    break;
+	  case RISCV::SD:
+	    BndInst.setOpcode(RISCV::SD_B);
+	    break;
+	  default:
+	    break;
+	  }
+      }
+    }
+    EmitToStreamer(*OutStreamer, BndInst);
+    return;  
+  }
+  
   MCInst TmpInst;
   LowerRISCVMachineInstrToMCInst(MI, TmpInst, *this);
   EmitToStreamer(*OutStreamer, TmpInst);
+  
 }
 
 bool RISCVAsmPrinter::PrintAsmOperand(const MachineInstr *MI, unsigned OpNo,

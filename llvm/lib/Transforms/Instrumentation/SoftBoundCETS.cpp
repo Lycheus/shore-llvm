@@ -3402,7 +3402,6 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
   MDNode* N = MDNode::get(C, MDString::get(C, "use bounded load_store"));
 
   //FunctionType *Fty = FunctionType::get(Type::getVoidTy(load_store->getType()->getContext()), false);
-  FunctionType *Fty = FunctionType::get(pointer_operand_type, false);
   //StringRef asmString = "bndr $0, $1, $2\n\tmv $0, $3";
   //StringRef asmString = "mv $0, $3\n\tbndr $0, $1, $2";
   //StringRef constraints = "=r,r,r,r";
@@ -3411,24 +3410,30 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
   StringRef constraints = "=r,r,r,0";
   
   SmallVector<Value*, 8> asm_args1;
-
+  std::vector<llvm::Type *> asm_args2 = {};
   //asm_args1.push_back(pointer_operand);
   asm_args1.push_back(tmp_base);
   asm_args1.push_back(tmp_bound);
   asm_args1.push_back(pointer_operand);
+
+  FunctionType *Fty = FunctionType::get(pointer_operand_type, false);
+  FunctionType *Fty2 = FunctionType::get(Type::getVoidTy(load_store->getContext()), asm_args2, false);
   
   llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
   
   llvm::CallInst* asmcall;
 
+  //kenny inline binding the base/bound to the register containing pointer for load
+  llvm::InlineAsm *IA_1 = llvm::InlineAsm::get(Fty, asmString, constraints, true, false, asmDialect);
+  llvm::InlineAsm *IA_2 = llvm::InlineAsm::get(Fty2, std::string("#bounded_start"), "", true, false, asmDialect);
+  llvm::InlineAsm *IA_3 = llvm::InlineAsm::get(Fty2, std::string("#bounded_end"), "", true, false, asmDialect);
+
+  Instruction *insert_after_load_store = load_store->getNextNode();
+  
   //kenny instruments the inline assmebly for bounded load and store.
   if(isa<LoadInst>(load_store)){
 
     //CallInst::Create(m_spatial_load_dereference_check, args, "", load_store);
-
-    //kenny inline binding the base/bound to the register containing pointer for load
-    llvm::InlineAsm *IA_1 = llvm::InlineAsm::get(Fty, asmString, constraints, true, false, asmDialect);
-    //llvm::InlineAsm *IA_2 = llvm::InlineAsm::get(Fty, asmString2, constraints2, true, false, asmDialect);
 
     //inline assemble to get the base and bound for shadow registers
     asmcall = CallInst::Create(IA_1, asm_args1, "bounded_t", load_store);
@@ -3443,6 +3448,8 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
     //CallInst::Create(m_bounded_load, "", load_store);
 
     //annotate the load instr with metadata indicate this ldst shall be bounded.
+    Instruction *newInst = CallInst::Create(IA_2, "", load_store);
+    Instruction *newInst2 = CallInst::Create(IA_3, "", insert_after_load_store);
     load_store->setMetadata("bounded_load", N);
   }
   else{    
@@ -3455,6 +3462,8 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
     load_store->setOperand(1, asmcall);
     //CallInst::Create(IA_2, asm_args2, "", load_store);
     //CallInst::Create(m_bounded_store, "", load_store);
+    Instruction *newInst = CallInst::Create(IA_2, "", load_store);
+    Instruction *newInst2 = CallInst::Create(IA_3, "", insert_after_load_store);
     load_store->setMetadata("bounded_store", N); //annotate the store instr with metadata indicate this ldst shall be bounded.
 
   }
