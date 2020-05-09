@@ -121,19 +121,8 @@ void AsmPrinter::EmitInlineAsm(StringRef Str, const MCSubtargetInfo &STI,
   if (isNullTerminated)
     Str = Str.substr(0, Str.size()-1);
 
-  // If the output streamer does not have mature MC support or the integrated
-  // assembler has been disabled, just emit the blob textually.
-  // Otherwise parse the asm and emit it via MC support.
-  // This is useful in case the asm parser doesn't handle something but the
-  // system assembler does.
-  const MCAsmInfo *MCAI = TM.getMCAsmInfo();
-  assert(MCAI && "No MCAsmInfo");
-  if (!MCAI->useIntegratedAssembler() &&
-      !OutStreamer->isIntegratedAssemblerRequired()) {
-    emitInlineAsmStart();
-    OutStreamer->EmitRawText(Str);
-    //if(!strncmp(Str.data(), "\tbndr", 5))
-    printf("%s\n", Str.data()); //kenny print the bndr string
+  //if(!strncmp(Str.data(), "\tbndr", 5))
+  //printf("%s\n", Str.data()); //kenny print the bndr string
     //kenny FIXME: This might reduce security coverage if the bndr is not binding on a0-a7
     if(!strncmp(Str.data(), "\tbndr a0,", 8))
       kenny_regnum = 11;
@@ -167,6 +156,18 @@ void AsmPrinter::EmitInlineAsm(StringRef Str, const MCSubtargetInfo &STI,
       kenny_regnum = 23;
     if(!strncmp(Str.data(), "\tbndr s7,", 8))
       kenny_regnum = 24;
+
+  // If the output streamer does not have mature MC support or the integrated
+  // assembler has been disabled, just emit the blob textually.
+  // Otherwise parse the asm and emit it via MC support.
+  // This is useful in case the asm parser doesn't handle something but the
+  // system assembler does.
+  const MCAsmInfo *MCAI = TM.getMCAsmInfo();
+  assert(MCAI && "No MCAsmInfo");
+  if (!MCAI->useIntegratedAssembler() &&
+      !OutStreamer->isIntegratedAssemblerRequired()) {
+    emitInlineAsmStart();
+    OutStreamer->EmitRawText(Str);
     emitInlineAsmEnd(STI, nullptr);
     return;
   }
@@ -611,7 +612,6 @@ void AsmPrinter::EmitInlineAsm(const MachineInstr *MI) const {
     SrcMgr.PrintMessage(Loc, SourceMgr::DK_Warning, Msg);
     SrcMgr.PrintMessage(Loc, SourceMgr::DK_Note, Note);
   }
-
   EmitInlineAsm(OS.str(), getSubtargetInfo(), MCOptions, LocMD,
                 MI->getInlineAsmDialect());
 
