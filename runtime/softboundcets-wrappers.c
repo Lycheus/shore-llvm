@@ -630,6 +630,8 @@ __WEAK_INLINE int softboundcets_fsync(int fd){
   return fsync(fd);
 }
 
+
+//This function wrapper might the the reason why Mibench/Dijkstra opt-O3 got memory violation?
 __WEAK_INLINE DIR* softboundcets_fdopendir(int fd){
   
   void* ret_ptr = (void*) fdopendir(fd);
@@ -909,7 +911,7 @@ softboundcets_fnmatch(const char *pattern, const char *string, int flags){
 
 
 
-
+//This function wrapper might the the reason why Mibench/Dijkstra opt-O3 got memory violation?
 __WEAK_INLINE DIR* softboundcets_opendir(const char* name){
 
   void* ret_ptr = opendir(name);
