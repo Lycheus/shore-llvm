@@ -83,6 +83,11 @@ void RISCVAsmPrinter::EmitInstruction(const MachineInstr *MI) {
 
   //kenny transform the standard load and store into bounded load and store depend on bounded flag
   if(kenny_bounded){
+
+    //sanity check: we are inside bounded section but the regnum from bndr is 0? might come from lbd?
+    if(kenny_regnum == 0)
+      printf("ERROR: There is a bounded load/store without matching bndr or lbd\n");
+
     MCInst BndInst;
     LowerRISCVMachineInstrToMCInst(MI, BndInst, *this);
     if(MI->mayLoad()){

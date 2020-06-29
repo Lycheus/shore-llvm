@@ -123,7 +123,7 @@ void AsmPrinter::EmitInlineAsm(StringRef Str, const MCSubtargetInfo &STI,
 
   //if(!strncmp(Str.data(), "\tbndr", 5))
   //printf("%s\n", Str.data()); //kenny print the bndr string
-    //kenny FIXME: This might reduce security coverage if the bndr is not binding on a0-a7
+    //kenny FIXME: This might reduce security coverage if the bndr is not binding on a0-a7 & s0-s7
     if(!strncmp(Str.data(), "\tbndr a0,", 8))
       kenny_regnum = 11;
     if(!strncmp(Str.data(), "\tbndr a1,", 8))
@@ -157,6 +157,39 @@ void AsmPrinter::EmitInlineAsm(StringRef Str, const MCSubtargetInfo &STI,
     if(!strncmp(Str.data(), "\tbndr s7,", 8))
       kenny_regnum = 24;
 
+    if(!strncmp(Str.data(), "\tlbdl a0,", 8))
+      kenny_regnum = 11;
+    if(!strncmp(Str.data(), "\tlbdl a1,", 8))
+      kenny_regnum = 12;
+    if(!strncmp(Str.data(), "\tlbdl a2,", 8))
+      kenny_regnum = 13;
+    if(!strncmp(Str.data(), "\tlbdl a3,", 8))
+      kenny_regnum = 14;
+    if(!strncmp(Str.data(), "\tlbdl a4,", 8))
+      kenny_regnum = 15;
+    if(!strncmp(Str.data(), "\tlbdl a5,", 8))
+      kenny_regnum = 16;
+    if(!strncmp(Str.data(), "\tlbdl a6,", 8))
+      kenny_regnum = 17;
+    if(!strncmp(Str.data(), "\tlbdl a7,", 8))
+      kenny_regnum = 18;
+    if(!strncmp(Str.data(), "\tlbdl s0,", 8))
+      kenny_regnum = 9;
+    if(!strncmp(Str.data(), "\tlbdl s1,", 8))
+      kenny_regnum = 10;
+    if(!strncmp(Str.data(), "\tlbdl s2,", 8))
+      kenny_regnum = 19;
+    if(!strncmp(Str.data(), "\tlbdl s3,", 8))
+      kenny_regnum = 20;
+    if(!strncmp(Str.data(), "\tlbdl s4,", 8))
+      kenny_regnum = 21;
+    if(!strncmp(Str.data(), "\tlbdl s5,", 8))
+      kenny_regnum = 22;
+    if(!strncmp(Str.data(), "\tlbdl s6,", 8))
+      kenny_regnum = 23;
+    if(!strncmp(Str.data(), "\tlbdl s7,", 8))
+      kenny_regnum = 24;
+    
   // If the output streamer does not have mature MC support or the integrated
   // assembler has been disabled, just emit the blob textually.
   // Otherwise parse the asm and emit it via MC support.
@@ -525,6 +558,7 @@ void AsmPrinter::EmitInlineAsm(const MachineInstr *MI) const {
 
   if(!strcmp(AsmStr, "#bounded_end")){
     kenny_bounded = 0;
+    kenny_regnum = 0;
   }
   
   // If this asmstr is empty, just print the #APP/#NOAPP markers.

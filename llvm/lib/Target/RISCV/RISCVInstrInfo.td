@@ -331,12 +331,23 @@ class BND_Load_ri<bits<3> funct3, string opcodestr>
     : RVInstI<funct3, OPC_LOAD_BND, (outs GPR:$rd), (ins GPR:$rs1, simm12:$imm12),
               opcodestr, "$rd, ${imm12}(${rs1})">;
 
+let hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
+class BND_LoadBound_ri<bits<3> funct3, string opcodestr>
+    : RVInstI<funct3, OPC_JALR, (outs GPR:$rd), (ins GPR:$rs1, simm12:$imm12),
+              opcodestr, "$rd, ${imm12}(${rs1})">;
+
 // Operands for stores are in the order srcreg, base, offset rather than
 // reflecting the order these fields are specified in the instruction
 // encoding.
 let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
 class BND_Store_rri<bits<3> funct3, string opcodestr>
     : RVInstS<funct3, OPC_STORE_BND, (outs),
+              (ins GPR:$rs2, GPR:$rs1, simm12:$imm12),
+              opcodestr, "$rs2, ${imm12}(${rs1})">;
+
+let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
+class BND_StoreBound_rri<bits<3> funct3, string opcodestr>
+    : RVInstS<funct3, OPC_JALR, (outs),
               (ins GPR:$rs2, GPR:$rs1, simm12:$imm12),
               opcodestr, "$rs2, ${imm12}(${rs1})">;
 
@@ -411,10 +422,10 @@ def AND  : ALU_rr<0b0000000, 0b111, "and">;
 // These use OPC_JALR
 def BNDR : BND_rr<0b0000000, 0b001, "bndr">;
 def BNDI : BND_ri<0b100, "bndi">;
-def LBDU : BND_ri<0b101, "lbdu">; //kenny might have bug because mayLoad = 0
-def LBDL : BND_ri<0b110, "lbdl">; //kenny might have bug because mayLoad = 0
-def SBDU : BND_ri<0b010, "sbdu">; //kenny might have bug because mayStore = 0
-def SBDL : BND_ri<0b011, "sbdl">; //kenny might have bug because mayStore = 0
+def LBDU : BND_LoadBound_ri<0b101, "lbdu">;
+def LBDL : BND_LoadBound_ri<0b110, "lbdl">;
+def SBDU : BND_StoreBound_rri<0b010, "sbdu">;
+def SBDL : BND_StoreBound_rri<0b011, "sbdl">;
 
 // These use OPC_LOAD_BND
 def LB_B : BND_Load_ri<0b000, "lb.b">;
@@ -424,6 +435,7 @@ def LD_B : BND_Load_ri<0b011, "ld.b">;
 def LBU_B : BND_Load_ri<0b100, "lbu.b">;
 def LHU_B : BND_Load_ri<0b101, "lhu.b">;
 def LWU_B : BND_Load_ri<0b110, "lwu.b">;
+
 
 // These use OPC_STORE_BND
 def SB_B : BND_Store_rri<0b100, "sb.b">;

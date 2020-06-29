@@ -173,6 +173,7 @@ extern unsigned long lks_cycle;
 extern unsigned long lbds_cycle;
 extern unsigned long lbas_cycle;
 extern unsigned long mcpk_cycle;
+extern unsigned long mset_cycle;
 extern unsigned long cpmt_cycle;
 extern unsigned long dsss_cycle;
 extern unsigned long asss_cycle;
@@ -196,8 +197,8 @@ static const size_t __SOFTBOUNDCETS_N_FREE_MAP_ENTRIES = ((size_t) 32 * (size_t)
 static const size_t __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES = ((size_t) 4 * (size_t) 1024 * (size_t) 1024);
 
 #else
-//original sbcets setting
 /*
+//original sbcets setting
 static const size_t __SOFTBOUNDCETS_N_TEMPORAL_ENTRIES = ((size_t) 64*(size_t) 1024 * (size_t) 1024);
 static const size_t __SOFTBOUNDCETS_LOWER_ZERO_POINTER_BITS = 3;
 static const size_t __SOFTBOUNDCETS_N_STACK_TEMPORAL_ENTRIES = ((size_t) 1024 * (size_t) 64);
@@ -286,6 +287,15 @@ void __softboundcets_global_init()
   __softboundcets_stub();
 }
 
+#ifdef __HW_SECURITY
+__WEAK_INLINE void __bon(unsigned int offset){
+  asm volatile ("li t0, 0x1\nsll t0, t0, 63\nadd t0, t0, %0\ncsrw 0x800, t0" : "=r" (offset));
+}
+
+__WEAK_INLINE void __boff(){
+  asm volatile ("csrw 0x800, zero");
+}
+#endif
 
 /* Layout of the shadow stack
 
@@ -650,7 +660,7 @@ void __softboundcets_copy_metadata(void* dest, void* from,
 #endif
 
   return;
-
+  
   }
     
   trie_secondary_table_dest_begin = __softboundcets_trie_primary_table[dest_primary_index_begin];
@@ -803,15 +813,31 @@ __softboundcets_memcopy_check(void* dest, void* src, size_t size,
                               void* dest_base, void* dest_bound, 
                               void* src_base, void* src_bound) {
 
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
+  
   if(size >= LONG_MAX)
-    __softboundcets_abort();
-
+    {
+      printf("kenny test for memcpy violation\n");
+      __softboundcets_abort();
+    }
+  
   if(dest < dest_base || (char*) dest > ((char*) dest_bound - size) || (size > (size_t) dest_bound))
-    __softboundcets_abort();
-
+    {
+      printf("kenny test for memcpy violation\n");
+      __softboundcets_abort();
+    }
+  
   if(src < src_base || (char*) src > ((char*) src_bound - size) || (size > (size_t) dest_bound))
-    __softboundcets_abort();
-
+    {
+      printf("kenny test for memcpy violation\n");
+      __softboundcets_abort();
+    }
+  
 }
 #elif __SOFTBOUNDCETS_TEMPORAL
 
@@ -819,7 +845,13 @@ __WEAK_INLINE void
 __softboundcets_memcopy_check(void* dest, void* src, size_t size,
                               size_t dest_key, void* dest_lock, 
                               size_t src_key, void* src_lock) {  
-
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
+  
   if(size >= LONG_MAX)
     __softboundcets_abort();
 
@@ -902,14 +934,26 @@ __softboundcets_memcopy_check(void* dest, void* src, size_t size,
 __WEAK_INLINE void 
 __softboundcets_memset_check(void* dest, size_t size,
                              void* dest_base, void* dest_bound){
-
-
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif
+  
   if(size >= LONG_MAX)
-    __softboundcets_abort();
+    {
+      printf("kenny test memeset violation\n");
+      __softboundcets_abort();
+    }
   
   if(dest < dest_base || (char*) dest > ((char*)dest_bound - size) || (size > (size_t)dest_bound))
-    __softboundcets_abort();
-
+    {
+      printf("kenny test memeset violation\n");
+      __softboundcets_abort();
+    }
+  
+  
 }
 #elif __SOFTBOUNDCETS_TEMPORAL
 
@@ -942,7 +986,12 @@ __softboundcets_memset_check(void* dest, size_t size,
   //unsigned long return_addr;
   //asm volatile ("mv %0, ra" : "=r" (return_addr));
   //printf("MEMSET_CHECK return address: %p\n", return_addr);
-  
+  //BEGIN
+  #ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+  #endif  
   
   if(size >= LONG_MAX)
     __softboundcets_abort();
@@ -953,8 +1002,14 @@ __softboundcets_memset_check(void* dest, size_t size,
   if(dest_key != *((size_t*)(dest_lock))){
     __softboundcets_abort();
   }
+  
+#ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  mset_cycle += rdcycle_end - rdcycle_start;
+#endif  
 
 }
+
 #else
 
 __WEAK_INLINE void 
@@ -967,7 +1022,6 @@ __softboundcets_memset_check(void* dest, size_t size,
 
 }
 #endif
-
 
 
 

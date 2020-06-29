@@ -1277,14 +1277,14 @@ bool SoftBoundCETS::isFuncDefSoftBound(const std::string &str) {
     m_func_wrappers_available["fabsf"] = true;
     m_func_wrappers_available["tan"] = true;
     m_func_wrappers_available["tanf"] = true;
-    m_func_wrappers_available["tanl"] = true;
+    //m_func_wrappers_available["tanl"] = true;
     m_func_wrappers_available["log10"] = true;
     m_func_wrappers_available["sin"] = true;
     m_func_wrappers_available["sinf"] = true;
-    m_func_wrappers_available["sinl"] = true;
+    //m_func_wrappers_available["sinl"] = true;
     m_func_wrappers_available["cos"] = true;
     m_func_wrappers_available["cosf"] = true;
-    m_func_wrappers_available["cosl"] = true;
+    //m_func_wrappers_available["cosl"] = true;
     m_func_wrappers_available["exp"] = true;
     m_func_wrappers_available["ldexp"] = true;
     m_func_wrappers_available["tmpfile"] = true;
@@ -1686,6 +1686,55 @@ void SoftBoundCETS::addStoreBaseBoundFunc(Value* pointer_dest,
   }
 
   //kenny metadata store shall be handle here using the new RISC-V instruction sbdl/sbdu
+  /*
+  call void asm sideeffect "bndr $0, $1, $2\0A\09sbdl $0, 0($3)\0A\09sbdu $0, 0($3)", "=r,r,r,r,0"(i8* %4, i8* %5, i32** %kenny_01, i32** %ptr)
+  call void asm sideeffect "sbdl $0, 0($1)", "r,r"(i32** %ptr, i32** %pointer_dest)
+  call void asm sideeffect "sbdu $0, 0($1)", "r,r"(i32** %ptr, i32** %pointer_dest)
+
+  or merged into
+
+  call i32* asm sideeffect "bndr $0, $1, $2\0A\09sbdl $0, 0($3)\0A\09sbdu $0, 0($3)", "=r,r,r,r,0"(i8* %base, i8* %bound, i32** %pointer_dest, i32** %pointer)
+  */
+  SmallVector<Value*, 8> inlineArgs;
+  //step one: prepare the base and bound and insert the inlineASM
+  inlineArgs.push_back(pointer);
+  inlineArgs.push_back(pointer_base_cast);
+  inlineArgs.push_back(pointer_bound_cast);
+
+  //step two: reference the pointer and get the pointer's container address using getelementptr
+  inlineArgs.push_back(pointer_dest_cast);
+
+  //step three: performance the metadata store using the sbdl/sbdu instruction
+  FunctionType *Fty = FunctionType::get(Type::getVoidTy(insert_at->getType()->getContext()), false);
+  
+  llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
+  StringRef asmString = "bndr $0, $1, $2\n\tsbdl $0, 0($3)\n\tsbdu $0, 0($3)";
+  StringRef constraints = "r,r,r,r";
+
+  //kenny inline binding the base/bound to the register containing pointer for load
+  llvm::InlineAsm *IA = llvm::InlineAsm::get(Fty, asmString, constraints, true, false, asmDialect);
+  CallInst::Create(IA, inlineArgs, "", insert_at);  
+
+  //GetElementPtrInst* gep = GetElementPtrInst::Create(nullptr, ptr, intBound, "mtmp", next);
+  /*
+  Value* intBound;
+  
+  if(num_operands == 0) {
+    if(m_is_64_bit) {      
+      intBound = ConstantInt::get(Type::getInt64Ty(alloca_inst->getType()->getContext()), 1, false);
+    }
+    else{
+      intBound = ConstantInt::get(Type::getInt32Ty(alloca_inst->getType()->getContext()), 1, false);
+    }
+  }
+  else {
+    // What can be operand of alloca instruction?
+    intBound = alloca_inst->getOperand(0);
+  }
+  */
+  //GetElementPtrInst::Create(nullptr, pointer_dest_cast, intBound, "container", insert_at);
+
+  //metadata_store replaced by the sbdu/sbdl instruction
   CallInst::Create(m_store_base_bound_func, args, "", insert_at);
 }
 
@@ -3380,8 +3429,11 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
   else {
     tmp_base = getAssociatedBase(pointer_operand);
     tmp_bound = getAssociatedBound(pointer_operand);
+
   }
 
+  /*
+  //Original SBCETS args for spatial load/store dereference check call, no longer needed
   Value* bitcast_base = castToVoidPtr(tmp_base, load_store);
   args.push_back(bitcast_base);
   
@@ -3391,8 +3443,9 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
   Value* cast_pointer_operand_value = castToVoidPtr(pointer_operand, 
                                                     load_store);    
   args.push_back(cast_pointer_operand_value);
-    
-  // Pushing the size of the type 
+  */
+  
+  // Pushing the size of the type
   Type* pointer_operand_type = pointer_operand->getType();
   Value* size_of_type = getSizeOfType(pointer_operand_type);
   args.push_back(size_of_type);
@@ -3408,66 +3461,116 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
 
   StringRef asmString = "bndr $0, $1, $2";
   StringRef constraints = "=r,r,r,0";
-  
+
+  StringRef asmStringLBD = "lbdl $0, 0($1)\n\tlbdu $0, 0($1)";
+  StringRef constraintsLBD = "=r,r,0";
+
   SmallVector<Value*, 8> asm_args1;
   std::vector<llvm::Type *> asm_args2 = {};
+  SmallVector<Value*, 8> inlineLBDArgs;
+
   //asm_args1.push_back(pointer_operand);
   asm_args1.push_back(tmp_base);
   asm_args1.push_back(tmp_bound);
   asm_args1.push_back(pointer_operand);
+  
+  //inlineASM parameter for using pointer loaded from memory
+  inlineLBDArgs.push_back(tmp_base);
+  inlineLBDArgs.push_back(pointer_operand);
 
+  //inlineLBDArgs.push_back(gep);
+  
   FunctionType *Fty = FunctionType::get(pointer_operand_type, false);
   FunctionType *Fty2 = FunctionType::get(Type::getVoidTy(load_store->getContext()), asm_args2, false);
   
   llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
-  
   llvm::CallInst* asmcall;
 
   //kenny inline binding the base/bound to the register containing pointer for load
   llvm::InlineAsm *IA_1 = llvm::InlineAsm::get(Fty, asmString, constraints, true, false, asmDialect);
   llvm::InlineAsm *IA_2 = llvm::InlineAsm::get(Fty2, std::string("#bounded_start"), "", true, false, asmDialect);
   llvm::InlineAsm *IA_3 = llvm::InlineAsm::get(Fty2, std::string("#bounded_end"), "", true, false, asmDialect);
-
-  Instruction *insert_after_load_store = load_store->getNextNode();
+  llvm::InlineAsm *IA_4 = llvm::InlineAsm::get(Fty, asmStringLBD, constraintsLBD, true, false, asmDialect);
+  
+  Instruction *insert_after_load_store = load_store->getNextNode(); //FIXME need a exception capture
   
   //kenny instruments the inline assmebly for bounded load and store.
   if(isa<LoadInst>(load_store)){
-
     //CallInst::Create(m_spatial_load_dereference_check, args, "", load_store);
 
-    //inline assemble to get the base and bound for shadow registers
-    asmcall = CallInst::Create(IA_1, asm_args1, "bounded_t", load_store);
-    Value* asmcall_value = asmcall->getCalledValue();
-    load_store->setOperand(0, asmcall);
-    //load_ptr_operand->replaceAllUsesWith(asmcall_value);
+    //inline assemble for lbdu/lbdl to get the base and bound for shadow registers
+    if(tmp_base != NULL && tmp_bound == NULL){
+      printf("kenny LOAD: base/bound are 0, the pointer base/bound need to be load from lbdu\n");
+      //kenny inlineASM preparation of metadata load which shall be handled here using RISC-V lbdu/lbdl
+      //Step 1: find the load instruction pointer operand and use GEP to find its container
+      /*
+      Value* intBound;
+      
+      if(m_is_64_bit) {      
+	intBound = ConstantInt::get(Type::getInt64Ty(load_store->getType()->getContext()), 1, false);
+      }
+      else{
+	intBound = ConstantInt::get(Type::getInt32Ty(load_store->getType()->getContext()), 1, false);
+      }
 
-    //inline assemble after the load instruction
-    //second inline assemble to move the correct address into register
-    //CallInst::Create(IA_2, asm_args2, "", load_store);
-    //CallInst::Create(IA_2, asm_args2, "", load_store->getNextNonDebugInstruction());
-    //CallInst::Create(m_bounded_load, "", load_store);
+      GetElementPtrInst* gep = GetElementPtrInst::Create(pointer_operand->getType(), pointer_operand, intBound, "container", load_store);
+      */
+      //A new method to track the address of the pointer inside the association's first parameter instead calculate here using the GEP. The first parameter of the association is the tmp_base from the getAssociatedBase(pointer_operand)
+      
+      //Step 2: lbdu/lbdl from the shadow memory of that pointer_dest
+
+      //kenny inline binding the base/bound to the register containing pointer for load
+      asmcall = CallInst::Create(IA_4, inlineLBDArgs, "ml_bounded_load_t", load_store);  
+
+      //Step 3: replace the load operand
+      load_store->setOperand(0, asmcall); //replace the virtual reg to the load/store instruction
+      Instruction *newInst = CallInst::Create(IA_2, "", load_store);
+      Instruction *newInst2 = CallInst::Create(IA_3, "", insert_after_load_store);
+      load_store->setMetadata("bounded_load", N);
+      
+      return;
+    }
+    
+    asmcall = CallInst::Create(IA_1, asm_args1, "bounded_load_t", load_store);
+    load_store->setOperand(0, asmcall); //replace the virtual reg to the load/store instruction
 
     //annotate the load instr with metadata indicate this ldst shall be bounded.
     Instruction *newInst = CallInst::Create(IA_2, "", load_store);
     Instruction *newInst2 = CallInst::Create(IA_3, "", insert_after_load_store);
     load_store->setMetadata("bounded_load", N);
-  }
+
+  }//END if(isa<LoadInst>(load_store))
+  
   else{    
     //CallInst::Create(m_spatial_store_dereference_check, args, "", load_store);
+    
+    //inline assemble for lbdu/lbdl to get the base and bound for shadow registers
+    if(tmp_base != NULL && tmp_bound == NULL){
+      printf("kenny STORE: base/bound are 0, the pointer base/bound need to be load from lbdu\n");
+
+      //Step 2: lbdu/lbdl from the shadow memory of that pointer_dest
+
+      //kenny inline binding the base/bound to the register containing pointer for load
+      asmcall = CallInst::Create(IA_4, inlineLBDArgs, "ml_bounded_store_t", load_store);  
+      
+      //Step 3: replace the load operand
+      load_store->setOperand(1, asmcall); //replace the virtual reg to the load/store instruction
+      Instruction *newInst = CallInst::Create(IA_2, "", load_store);
+      Instruction *newInst2 = CallInst::Create(IA_3, "", insert_after_load_store);
+      load_store->setMetadata("bounded_store", N); //annotate the store instr with metadata indicate this ldst shall be bounded.
+      
+      return;
+    }
+    
     //kenny inline binding the base/bound to the register containing pointer for store
-    llvm::InlineAsm *IA_1 = llvm::InlineAsm::get(Fty, asmString, constraints, true, false, asmDialect);
     //llvm::InlineAsm *IA_2 = llvm::InlineAsm::get(Fty, asmString2, constraints2, true, false, asmDialect);
-    asmcall = CallInst::Create(IA_1, asm_args1, "bounded_t", load_store);
-    Value* asmcall_value = asmcall->getCalledValue();
-    load_store->setOperand(1, asmcall);
-    //CallInst::Create(IA_2, asm_args2, "", load_store);
-    //CallInst::Create(m_bounded_store, "", load_store);
+    asmcall = CallInst::Create(IA_1, asm_args1, "bounded_store_t", load_store);
+    load_store->setOperand(1, asmcall); //replace the virtual reg to the load/store instruction
+
     Instruction *newInst = CallInst::Create(IA_2, "", load_store);
     Instruction *newInst2 = CallInst::Create(IA_3, "", insert_after_load_store);
     load_store->setMetadata("bounded_store", N); //annotate the store instr with metadata indicate this ldst shall be bounded.
-
   }
-
   return;
 }
 
@@ -3977,7 +4080,7 @@ void SoftBoundCETS::addDereferenceChecks(Function* func) {
     }    
   }
 
-#if 0
+#if 0 //FIXME kenny maybe we can enable the elide spatial check optimization here (enable through flag in another code section?)
   // spatial check optimizations here 
 
   for(std::vector<Instruction*>::iterator i = CheckWorkList.begin(), 
@@ -5284,14 +5387,65 @@ void SoftBoundCETS::insertMetadataLoad(LoadInst* load_inst){
     args.push_back(lock_alloca);
   }
 
-
+  /*
   //kenny metadata load shall be handled here using RISC-V lbdu/lbdl
+
+  //Step 1: find the load instruction operand which contains the pointer
+  //asmcall = CallInst::Create(IA_1, asm_args1, "bounded_t", load_store);
+  //Value* asmcall_value = load_inst->getCalledValue(); //get the virtual reg name from the inlineASM
+  //Value* load_ptr = load_inst->getOperand(1); //replace the virtual reg to the load/store instruction
+
+  //Step 2: GEP the pointer
+  Value* intBound;
+  
+  if(m_is_64_bit) {      
+    intBound = ConstantInt::get(Type::getInt64Ty(load_inst->getType()->getContext()), 1, false);
+  }
+  else{
+    intBound = ConstantInt::get(Type::getInt32Ty(load_inst->getType()->getContext()), 1, false);
+  }
+
+  GetElementPtrInst* gep = GetElementPtrInst::Create(load_inst->getType(), pointer_operand, intBound, "container", insert_at);
+    
+  //Step 3: lbdu/lbdl from the shadow memory of that pointer_dest
+  SmallVector<Value*, 8> inlineArgs;
+  inlineArgs.push_back(gep);
+  inlineArgs.push_back(pointer_operand);
+
+  //Type* pointer_operand_type = pointer_operand->getType();
+  //FunctionType *Fty = FunctionType::get(pointer_operand_type, false);
+  FunctionType *Fty = FunctionType::get(load_inst->getType(), false);
+  //FunctionType *Fty = FunctionType::get(Type::getVoidTy(insert_at->getType()->getContext()), false);
+
+  llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
+  StringRef asmString = "lbdl $0, 0($1)\n\tlbdu $0, 0($1)";
+  StringRef constraints = "=r,r,0";
+
+  llvm::CallInst* asmcall;
+  
+  //kenny inline binding the base/bound to the register containing pointer for load
+  llvm::InlineAsm *IA = llvm::InlineAsm::get(Fty, asmString, constraints, true, false, asmDialect);
+  asmcall = CallInst::Create(IA, inlineArgs, "ml_bounded_t", insert_at);  
+  
+  //Step 4: associate base bound
+  // base_load = lbdl, bound_load = lbdu
+  // A problem is that there is no way to get value from shadow reg into normal reg
+
+  */
+  
+  //These are replaced with our security hardware instr lbdu/lbdl
+  /**/
   CallInst::Create(m_load_base_bound_func, args, "", insert_at);
       
   if(spatial_safety){
+    /*
     Instruction* base_load = new LoadInst(base_alloca, "base.load", insert_at);
     Instruction* bound_load = new LoadInst(bound_alloca, "bound.load", insert_at);
     associateBaseBound(load_inst_value, base_load, bound_load);      
+    */
+    
+    //kenny modify and marked the pointer association of the based/bound as "0" that indicates the base/bound shall be loaded later by perform lbdu/lbdl instruction to load base/bound from hardware shadow memory
+    associateBaseBound(load_inst_value, pointer_operand_bitcast, NULL);      
   }
 
   if(temporal_safety){
@@ -5299,7 +5453,7 @@ void SoftBoundCETS::insertMetadataLoad(LoadInst* load_inst){
     Instruction* lock_load = new LoadInst(lock_alloca, "lock.load", insert_at);    
     associateKeyLock(load_inst_value, key_load, lock_load);
   }
-
+  /**/
 
 }
 

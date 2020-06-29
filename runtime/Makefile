@@ -2,7 +2,7 @@ all: softboundcets_rt_riscv
 
 #CFLAGS=-Wall -Wno-gnu-statement-expression -pedantic -O3 -D__SOFTBOUNDCETS_SPATIAL_TEMPORAL #-D__FUNC_CYCLE ##-D__SOFTBOUNDCETS_DEBUG
 #CFLAGS=-Wall -pedantic -O3 -D__SOFTBOUNDCETS_SPATIAL_TEMPORAL
-CFLAGS=-Wall -pedantic -O3 -D__SOFTBOUNDCETS_SPATIAL -Wno-gnu-statement-expression
+CFLAGS=-Wall -pedantic -O3 -D__SOFTBOUNDCETS_SPATIAL -Wno-gnu-statement-expression ##-D__HW_SECURITY ##-D__FUNC_CYCLE
 
 # kenny modify to disable temporal safety
 ARFLAGS=-rcs
