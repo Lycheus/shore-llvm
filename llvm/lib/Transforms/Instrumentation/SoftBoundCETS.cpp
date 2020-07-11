@@ -1735,7 +1735,7 @@ void SoftBoundCETS::addStoreBaseBoundFunc(Value* pointer_dest,
   //GetElementPtrInst::Create(nullptr, pointer_dest_cast, intBound, "container", insert_at);
 
   //metadata_store replaced by the sbdu/sbdl instruction
-  CallInst::Create(m_store_base_bound_func, args, "", insert_at);
+  //CallInst::Create(m_store_base_bound_func, args, "", insert_at);
 }
 
 //
@@ -2159,6 +2159,7 @@ void SoftBoundCETS:: introduceShadowStackAllocation(CallInst* call_inst){
 
   SmallVector<Value*, 8> args;
   args.push_back(total_ptr_args);
+  //kenny sha SHA test
   CallInst::Create(m_shadow_stack_allocate, args, "", call_inst);
 }
 
@@ -3499,7 +3500,7 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
     //CallInst::Create(m_spatial_load_dereference_check, args, "", load_store);
 
     //inline assemble for lbdu/lbdl to get the base and bound for shadow registers
-    if(tmp_base != NULL && tmp_bound == NULL){
+    if(tmp_base == tmp_bound){
       printf("kenny LOAD: base/bound are 0, the pointer base/bound need to be load from lbdu\n");
       //kenny inlineASM preparation of metadata load which shall be handled here using RISC-V lbdu/lbdl
       //Step 1: find the load instruction pointer operand and use GEP to find its container
@@ -3545,7 +3546,7 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
     //CallInst::Create(m_spatial_store_dereference_check, args, "", load_store);
     
     //inline assemble for lbdu/lbdl to get the base and bound for shadow registers
-    if(tmp_base != NULL && tmp_bound == NULL){
+    if(tmp_base == tmp_bound){
       printf("kenny STORE: base/bound are 0, the pointer base/bound need to be load from lbdu\n");
 
       //Step 2: lbdu/lbdl from the shadow memory of that pointer_dest
@@ -4666,6 +4667,7 @@ void SoftBoundCETS::handleMemcpy(CallInst* call_inst){
   args.push_back(arg3);
 
   if(arg3->getType() == Type::getInt64Ty(arg3->getContext())){
+    //kenny sha SHA test
     CallInst::Create(m_copy_metadata, args, "", call_inst);
   }
   else{
@@ -5359,7 +5361,7 @@ void SoftBoundCETS::insertMetadataLoad(LoadInst* load_inst){
   /* If the load returns a pointer, then load the base and bound
    * from the shadow space
    */
-  Value* pointer_operand_bitcast =  castToVoidPtr(pointer_operand, insert_at);      
+  Value* pointer_operand_bitcast =  castToVoidPtr(pointer_operand, insert_at);
   Instruction* first_inst_func = dyn_cast<Instruction>(load_inst->getParent()->getParent()->begin()->begin());
   assert(first_inst_func && "function doesn't have any instruction and there is load???");
   
@@ -5435,7 +5437,7 @@ void SoftBoundCETS::insertMetadataLoad(LoadInst* load_inst){
   
   //These are replaced with our security hardware instr lbdu/lbdl
   /**/
-  CallInst::Create(m_load_base_bound_func, args, "", insert_at);
+  //CallInst::Create(m_load_base_bound_func, args, "", insert_at);
       
   if(spatial_safety){
     /*
@@ -5443,9 +5445,15 @@ void SoftBoundCETS::insertMetadataLoad(LoadInst* load_inst){
     Instruction* bound_load = new LoadInst(bound_alloca, "bound.load", insert_at);
     associateBaseBound(load_inst_value, base_load, bound_load);      
     */
-    
     //kenny modify and marked the pointer association of the based/bound as "0" that indicates the base/bound shall be loaded later by perform lbdu/lbdl instruction to load base/bound from hardware shadow memory
-    associateBaseBound(load_inst_value, pointer_operand_bitcast, NULL);      
+
+    /* Trying to use metadata to identify the Value loaded from Instruction contains base/bound in shadow memory, it is not working because the metadata is attached to the load instruction instead the value. Instead metadata (for instruction) maybe I shall try attribute. or use the std::map to track values
+    LLVMContext& kenny_C = load->getContext();
+    MDNode* kenny_N = MDNode::get(kenny_C, MDString::get(kenny_C, "The load contains pointer loaded from shadow memory"));
+    load->setMetadata("from_shadow", kenny_N);
+    */
+
+    associateBaseBound(load_inst_value, pointer_operand_bitcast, pointer_operand_bitcast);
   }
 
   if(temporal_safety){
