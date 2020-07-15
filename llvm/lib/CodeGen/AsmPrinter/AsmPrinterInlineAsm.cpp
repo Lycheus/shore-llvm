@@ -156,6 +156,29 @@ void AsmPrinter::EmitInlineAsm(StringRef Str, const MCSubtargetInfo &STI,
       kenny_regnum = 23;
     if(!strncmp(Str.data(), "\tbndr s7,", 8))
       kenny_regnum = 24;
+    //newly added
+    if(!strncmp(Str.data(), "\tbndr s8,", 8))
+      kenny_regnum = 25;
+    if(!strncmp(Str.data(), "\tbndr s9,", 8))
+      kenny_regnum = 26;
+    if(!strncmp(Str.data(), "\tbndr s10,", 9))
+      kenny_regnum = 27;
+    if(!strncmp(Str.data(), "\tbndr s11,", 9))
+      kenny_regnum = 28;
+    if(!strncmp(Str.data(), "\tbndr t0,", 8))
+      kenny_regnum = 6;
+    if(!strncmp(Str.data(), "\tbndr t1,", 8))
+      kenny_regnum = 7;
+    if(!strncmp(Str.data(), "\tbndr t2,", 8))
+      kenny_regnum = 8;
+    if(!strncmp(Str.data(), "\tbndr t3,", 8))
+      kenny_regnum = 29;
+    if(!strncmp(Str.data(), "\tbndr t4,", 8))
+      kenny_regnum = 30;
+    if(!strncmp(Str.data(), "\tbndr t5,", 8))
+      kenny_regnum = 31;
+    if(!strncmp(Str.data(), "\tbndr t6,", 8))
+      kenny_regnum = 32;
 
     if(!strncmp(Str.data(), "\tlbdl a0,", 8))
       kenny_regnum = 11;
@@ -189,6 +212,30 @@ void AsmPrinter::EmitInlineAsm(StringRef Str, const MCSubtargetInfo &STI,
       kenny_regnum = 23;
     if(!strncmp(Str.data(), "\tlbdl s7,", 8))
       kenny_regnum = 24;
+
+    //newly added
+    if(!strncmp(Str.data(), "\tlbdl s8,", 8))
+      kenny_regnum = 25;
+    if(!strncmp(Str.data(), "\tlbdl s9,", 8))
+      kenny_regnum = 26;
+    if(!strncmp(Str.data(), "\tlbdl s10,", 9))
+      kenny_regnum = 27;
+    if(!strncmp(Str.data(), "\tlbdl s11,", 9))
+      kenny_regnum = 28;
+    if(!strncmp(Str.data(), "\tlbdl t0,", 8))
+      kenny_regnum = 6;
+    if(!strncmp(Str.data(), "\tlbdl t1,", 8))
+      kenny_regnum = 7;
+    if(!strncmp(Str.data(), "\tlbdl t2,", 8))
+      kenny_regnum = 8;
+    if(!strncmp(Str.data(), "\tlbdl t3,", 8))
+      kenny_regnum = 29;
+    if(!strncmp(Str.data(), "\tlbdl t4,", 8))
+      kenny_regnum = 30;
+    if(!strncmp(Str.data(), "\tlbdl t5,", 8))
+      kenny_regnum = 31;
+    if(!strncmp(Str.data(), "\tlbdl t6,", 8))
+      kenny_regnum = 32;
     
   // If the output streamer does not have mature MC support or the integrated
   // assembler has been disabled, just emit the blob textually.
