@@ -45,6 +45,7 @@ def ABIRegAltName : RegAltNameIndex;
 // instructions. This affects register allocation even when compressed
 // instruction isn't targeted, we see no major negative codegen impact.
 
+//kenny RISCV ABI naming rules: x7 = t2 = regnum:8
 let RegAltNameIndices = [ABIRegAltName] in {
   def X0  : RISCVReg<0, "x0", ["zero"]>, DwarfRegNum<[0]>;
   let CostPerUse = 1 in {

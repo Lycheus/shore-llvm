@@ -287,6 +287,8 @@ void __softboundcets_global_init()
   __softboundcets_stub();
 }
 
+//kenny might not be optimal because the __bon basic block can happer quite late in main function, thus we change the hardware enable sequence into softboundcets's TransformMain instrumentation which add the sequence at the beginning of the pseudo_main
+/*
 #ifdef __HW_SECURITY
 __WEAK_INLINE void __bon(unsigned int offset){
   asm volatile ("li t0, 0x1\nsll t0, t0, 63\nadd t0, t0, %0\ncsrw 0x800, t0" : "=r" (offset));
@@ -296,6 +298,7 @@ __WEAK_INLINE void __boff(){
   asm volatile ("csrw 0x800, zero");
 }
 #endif
+*/
 
 /* Layout of the shadow stack
 

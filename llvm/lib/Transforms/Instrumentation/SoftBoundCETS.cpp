@@ -354,6 +354,12 @@ class SoftBoundCETS: public ModulePass {
   void getGlobalVariableBaseBound(Value*, Value* &, Value* &);
   void dissociateBaseBound(Value*);
   void dissociateKeyLock(Value*);
+
+
+  /* passes related to secure RISC-V*/
+  
+  void RISCV_setupShadowMemoryOffset(Module&);
+  
   
   /* Explicit Map manipulation functions */
 
@@ -1219,7 +1225,20 @@ void SoftBoundCETS::transformMain(Module& module) {
     arg_i2->takeName(&*arg_i);
     ++arg_i2;
     arg_index++;
-  }  
+  }
+
+  //Kenny insert metadata status register csrw initialization at the beginning of the main function.
+  // move the CSRW initialization for hardware metadata to the __softboundcets_global_init because the metadata store happen before the main function.
+  /*
+  StringRef asmString = "li t0, 0x1\n\tsll t0, t0, 63\n\tadd t0, t0, sp\n\taddi t0, t0, 1024\n\tcsrw 0x800, t0";
+  StringRef constraints = "";
+  SmallVector<Value*, 8> asm_args;
+  llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
+  FunctionType *Fty_void = FunctionType::get(Type::getVoidTy(new_func->getContext()), false);
+  llvm::InlineAsm *IA = llvm::InlineAsm::get(Fty_void, asmString, constraints, true, false, asmDialect);
+  CallInst::Create(IA, asm_args, "", dyn_cast<Instruction>(new_func->begin()->begin()));
+  */
+
   //
   // Remove the old function from the module
   //
@@ -1518,6 +1537,31 @@ bool SoftBoundCETS::isFuncDefSoftBound(const std::string &str) {
   }
 
   return false;
+}
+
+//
+// Method: RISCV_setuptShadowMemoryOffset
+//
+// Description: This function will insert an inline assembly for RISC-V to setup the csrw status register
+// which give the offset of the starting address of the shadow memory. The offset will be used by the
+// lbd[u|l] and sbd[u|l] instructions to store the base and bound information in the shadow registers
+// to the corresponding linear mapping shadow memory.
+//
+
+void SoftBoundCETS::RISCV_setupShadowMemoryOffset(Module& module){
+  Function* global_init_function = module.getFunction("__softboundcets_global_init");    
+  assert(global_init_function && "no __softboundcets_global_init function??");
+  
+  //initializing the csrw register for RISC-V to setup the shadow memory offset.
+  StringRef asmString = "li t0, 0x1\n\tsll t0, t0, 63\n\tadd t0, t0, sp\n\taddi t0, t0, 1024\n\tcsrw 0x800, t0";
+  StringRef constraints = "";
+  SmallVector<Value*, 8> asm_args;
+  llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
+  FunctionType *Fty_void = FunctionType::get(Type::getVoidTy(global_init_function->getContext()), false);
+  llvm::InlineAsm *IA = llvm::InlineAsm::get(Fty_void, asmString, constraints, true, false, asmDialect);
+  CallInst::Create(IA, asm_args, "", dyn_cast<Instruction>(global_init_function->begin()->begin()));
+  
+  return;
 }
 
 // 
@@ -4633,6 +4677,7 @@ Instruction* SoftBoundCETS:: getGlobalInitInstruction(Module& module){
     }
   }
   assert(global_init_terminator && "global init does not have return, strange");
+
   return global_init_terminator;
 }
 
@@ -5821,6 +5866,10 @@ bool SoftBoundCETS::runOnModule(Module& module) {
 
 
   renameFunctions(module);
+
+  //Enable the shadow memory offset
+  RISCV_setupShadowMemoryOffset(module);
+  
   //  DEBUG(errs()<<"Done with SoftBoundCETS\n");
   
   /* print the external functions not wrapped */
