@@ -288,6 +288,7 @@ void __softboundcets_global_init()
 }
 
 //kenny might not be optimal because the __bon basic block can happer quite late in main function, thus we change the hardware enable sequence into softboundcets's TransformMain instrumentation which add the sequence at the beginning of the pseudo_main
+// update: The __bon setup for csrw is now implemented in compiler instrumentation inside the __global_init() function.
 /*
 #ifdef __HW_SECURITY
 __WEAK_INLINE void __bon(unsigned int offset){
@@ -578,6 +579,37 @@ __WEAK_INLINE void __softboundcets_introspect_metadata(void* ptr,
 __METADATA_INLINE 
 void __softboundcets_copy_metadata(void* dest, void* from, 
 				   size_t size){
+
+#ifdef __HW_SECURITY
+  printf("___copy_metadata_start___\n");
+  /*
+  asm volatile("lbdl %0, 0(%1)\n\tlbdu %0, 0(%1)\n\tsbdl %0, 0(%0)\n\tsbdu %0, 0(%0)"
+	       : 
+	       : "r" (dest), "r" (from)
+	       :
+	       );
+  return;
+  */
+
+  // kenny Question: Why divide by 8? The alignment of RV64 memory?
+  // might need to change to divide by 4 when using RV32
+  for(size_t i = 0; i < size/8; i++)
+    {
+      asm volatile("lbdl %0, 0(%1)\n\tlbdu %0, 0(%1)\n\tsbdl %0, 0(%0)\n\tsbdu %0, 0(%0)"
+		   : 
+		   : "r" (dest), "r" (from)
+		   :
+		   );
+      dest = (char*)dest + 8;
+      from = (char*)from + 8;
+      //dest = dest + 1;
+      //from = from + 1;
+    }
+  printf("___copy_metadata_end___\n");
+  return;
+#endif
+
+
   //BEGIN
   #ifdef __FUNC_CYCLE
   //kenny record the cycle count

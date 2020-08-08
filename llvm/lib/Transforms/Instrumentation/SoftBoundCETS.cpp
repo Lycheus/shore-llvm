@@ -4712,7 +4712,6 @@ void SoftBoundCETS::handleMemcpy(CallInst* call_inst){
   args.push_back(arg3);
 
   if(arg3->getType() == Type::getInt64Ty(arg3->getContext())){
-    //kenny sha SHA test
     CallInst::Create(m_copy_metadata, args, "", call_inst);
   }
   else{
