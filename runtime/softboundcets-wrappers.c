@@ -2181,9 +2181,9 @@ __WEAK_INLINE void
 softboundcets_qsort(void* base, size_t nmemb, size_t size, 
                     int (*compar)(const void*, const void*)){
 
-  //my_qsort(base, nmemb, size, compar);
+  my_qsort(base, nmemb, size, compar);
   //kenny change the qsort to default glibc for proper performance measurment in mibench/qsort.
-  qsort(base, nmemb, size, compar);
+  //qsort(base, nmemb, size, compar);
 }
 
 #if defined(__linux__)

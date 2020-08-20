@@ -580,8 +580,17 @@ __METADATA_INLINE
 void __softboundcets_copy_metadata(void* dest, void* from, 
 				   size_t size){
 
+  
+
+  //BEGIN
+#ifdef __FUNC_CYCLE
+  //kenny record the cycle count
+  unsigned long rdcycle_start, rdcycle_end;
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
+#endif
+  
 #ifdef __HW_SECURITY
-  printf("___copy_metadata_start___\n");
+  //printf("___copy_metadata_start___\n");
   /*
   asm volatile("lbdl %0, 0(%1)\n\tlbdu %0, 0(%1)\n\tsbdl %0, 0(%0)\n\tsbdu %0, 0(%0)"
 	       : 
@@ -593,6 +602,7 @@ void __softboundcets_copy_metadata(void* dest, void* from,
 
   // kenny Question: Why divide by 8? The alignment of RV64 memory?
   // might need to change to divide by 4 when using RV32
+  /* Original hardware for LBD which loading from shadow memory to shadow register
   for(size_t i = 0; i < size/8; i++)
     {
       asm volatile("lbdl %0, 0(%1)\n\tlbdu %0, 0(%1)\n\tsbdl %0, 0(%0)\n\tsbdu %0, 0(%0)"
@@ -605,17 +615,47 @@ void __softboundcets_copy_metadata(void* dest, void* from,
       //dest = dest + 1;
       //from = from + 1;
     }
-  printf("___copy_metadata_end___\n");
+  */
+
+  static int aligned_flag = 0;
+  //Modification for LBD is loading from shadow memory to physical register
+  if(((size_t)from) % 8 != 0){
+    if (aligned_flag == 0){
+      printf("memcpy from_ptr not aligned\n");
+      aligned_flag = 1;
+    }
+    return;
+  }
+  if(((size_t)dest) % 8 != 0){
+    if (aligned_flag == 0){
+    printf("memcpy dest_ptr not aligned\n");
+      aligned_flag = 1;
+    }
+    return;
+  }  
+  for(size_t i = 0; i < (size>>3); i++)
+    {
+      //printf("kenny debug copy_metadata: dest=%lx \tfrom=%lx \tsize=%d\n", dest, from, i);
+      void* base;
+      void* bound;
+      asm volatile("lbdl %[base], 0(%[from])\n\tlbdu %[bound], 0(%[from])\n\tbndr %[dest], %[base], %[bound]\n\tsbdl %[dest], 0(%[dest])\n\tsbdu %[dest], 0(%[dest])"
+		   : [base]"=r" (base), [bound]"=r" (bound)
+		   : [dest]"r" (dest), [from]"r" (from) 
+		   :
+		   );
+      dest = (char*)dest + 8;
+      from = (char*)from + 8;
+    }
+  
+  //printf("___copy_metadata_end___\n");
+#ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  cpmt_cycle += rdcycle_end - rdcycle_start;
+#endif
+  
   return;
 #endif
 
-
-  //BEGIN
-  #ifdef __FUNC_CYCLE
-  //kenny record the cycle count
-  unsigned long rdcycle_start, rdcycle_end;
-  asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
-  #endif
 
   //  printf("dest=%p, from=%p, size=%zx\n", dest, from, size);
   
@@ -847,31 +887,36 @@ __WEAK_INLINE void
 __softboundcets_memcopy_check(void* dest, void* src, size_t size,
                               void* dest_base, void* dest_bound, 
                               void* src_base, void* src_bound) {
-
+  
   //BEGIN
-  #ifdef __FUNC_CYCLE
+#ifdef __FUNC_CYCLE
   //kenny record the cycle count
   unsigned long rdcycle_start, rdcycle_end;
   asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
-  #endif
+#endif
   
   if(size >= LONG_MAX)
     {
-      printf("kenny test for memcpy violation\n");
+      printf("kenny test for memcpy violation 1\n");
       __softboundcets_abort();
     }
   
   if(dest < dest_base || (char*) dest > ((char*) dest_bound - size) || (size > (size_t) dest_bound))
     {
-      printf("kenny test for memcpy violation\n");
+      printf("kenny test for memcpy violation 2\n");
       __softboundcets_abort();
     }
   
   if(src < src_base || (char*) src > ((char*) src_bound - size) || (size > (size_t) dest_bound))
     {
-      printf("kenny test for memcpy violation\n");
+      printf("kenny test for memcpy violation 3\n");
       __softboundcets_abort();
     }
+
+#ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  mcpk_cycle += rdcycle_end - rdcycle_start;
+#endif
   
 }
 #elif __SOFTBOUNDCETS_TEMPORAL
@@ -910,12 +955,12 @@ __softboundcets_memcopy_check(void* dest, void* src, size_t size,
                               size_t src_key, void* src_lock) {  
 
   //BEGIN
-  #ifdef __FUNC_CYCLE
+#ifdef __FUNC_CYCLE
   //kenny record the cycle count
   unsigned long rdcycle_start, rdcycle_end;
   asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
-  #endif
-
+#endif
+  
 #ifndef __NOSIM_CHECKS
 
   /* printf("dest=%zx, src=%zx, size=%zx, ulong_max=%zx\n",  */
@@ -940,10 +985,10 @@ __softboundcets_memcopy_check(void* dest, void* src, size_t size,
 
 #endif
 
-  #ifdef __FUNC_CYCLE
+#ifdef __FUNC_CYCLE
   asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
   mcpk_cycle += rdcycle_end - rdcycle_start;
-  #endif
+#endif
   
 }
 #else
@@ -978,16 +1023,20 @@ __softboundcets_memset_check(void* dest, size_t size,
   
   if(size >= LONG_MAX)
     {
-      printf("kenny test memeset violation\n");
+      printf("kenny test memset violation 1\n");
       __softboundcets_abort();
     }
   
   if(dest < dest_base || (char*) dest > ((char*)dest_bound - size) || (size > (size_t)dest_bound))
     {
-      printf("kenny test memeset violation\n");
+      printf("kenny test memset violation 2\n");
       __softboundcets_abort();
     }
   
+#ifdef __FUNC_CYCLE
+  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
+  mset_cycle += rdcycle_end - rdcycle_start;
+#endif
   
 }
 #elif __SOFTBOUNDCETS_TEMPORAL
@@ -1022,11 +1071,11 @@ __softboundcets_memset_check(void* dest, size_t size,
   //asm volatile ("mv %0, ra" : "=r" (return_addr));
   //printf("MEMSET_CHECK return address: %p\n", return_addr);
   //BEGIN
-  #ifdef __FUNC_CYCLE
+#ifdef __FUNC_CYCLE
   //kenny record the cycle count
   unsigned long rdcycle_start, rdcycle_end;
   asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
-  #endif  
+#endif  
   
   if(size >= LONG_MAX)
     __softboundcets_abort();
@@ -1042,7 +1091,7 @@ __softboundcets_memset_check(void* dest, size_t size,
   asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
   mset_cycle += rdcycle_end - rdcycle_start;
 #endif  
-
+  
 }
 
 #else

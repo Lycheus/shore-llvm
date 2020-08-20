@@ -3544,6 +3544,7 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
     //CallInst::Create(m_spatial_load_dereference_check, args, "", load_store);
 
     //inline assemble for lbdu/lbdl to get the base and bound for shadow registers
+#if 0
     if(tmp_base == tmp_bound){
       printf("kenny LOAD: base/bound are 0, the pointer base/bound need to be load from lbdu\n");
       //kenny inlineASM preparation of metadata load which shall be handled here using RISC-V lbdu/lbdl
@@ -3575,7 +3576,7 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
       
       return;
     }
-    
+#endif
     asmcall = CallInst::Create(IA_1, asm_args1, "bounded_load_t", load_store);
     load_store->setOperand(0, asmcall); //replace the virtual reg to the load/store instruction
 
@@ -3590,6 +3591,8 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
     //CallInst::Create(m_spatial_store_dereference_check, args, "", load_store);
     
     //inline assemble for lbdu/lbdl to get the base and bound for shadow registers
+
+#if 0
     if(tmp_base == tmp_bound){
       printf("kenny STORE: base/bound are 0, the pointer base/bound need to be load from lbdu\n");
 
@@ -3606,6 +3609,7 @@ SoftBoundCETS::addLoadStoreChecks(Instruction* load_store,
       
       return;
     }
+#endif
     
     //kenny inline binding the base/bound to the register containing pointer for store
     //llvm::InlineAsm *IA_2 = llvm::InlineAsm::get(Fty, asmString2, constraints2, true, false, asmDialect);
@@ -5484,11 +5488,29 @@ void SoftBoundCETS::insertMetadataLoad(LoadInst* load_inst){
   //CallInst::Create(m_load_base_bound_func, args, "", insert_at);
       
   if(spatial_safety){
-    /*
-    Instruction* base_load = new LoadInst(base_alloca, "base.load", insert_at);
-    Instruction* bound_load = new LoadInst(bound_alloca, "bound.load", insert_at);
-    associateBaseBound(load_inst_value, base_load, bound_load);      
-    */
+    //Instruction* base_load = new LoadInst(base_alloca, "base.load", insert_at);
+    //Instruction* bound_load = new LoadInst(bound_alloca, "bound.load", insert_at);
+    
+    StringRef asmStringLBDL = "lbdl $0, 0($1)";
+    StringRef asmStringLBDU = "lbdu $0, 0($1)";
+    StringRef constraintsLBD = "=r,r,0";
+    SmallVector<Value*, 8> inlineLBDLArgs;
+    SmallVector<Value*, 8> inlineLBDUArgs;
+    inlineLBDLArgs.push_back(pointer_operand_bitcast);
+    inlineLBDLArgs.push_back(base_alloca);
+    inlineLBDUArgs.push_back(pointer_operand_bitcast);
+    inlineLBDUArgs.push_back(bound_alloca);
+    FunctionType *Fty = FunctionType::get(pointer_operand->getType(), false);
+    llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
+    llvm::CallInst* base_load_hw;
+    llvm::CallInst* bound_load_hw;
+    llvm::InlineAsm *IA_1 = llvm::InlineAsm::get(Fty, asmStringLBDL, constraintsLBD, true, false, asmDialect);
+    llvm::InlineAsm *IA_2 = llvm::InlineAsm::get(Fty, asmStringLBDU, constraintsLBD, true, false, asmDialect);
+    base_load_hw = CallInst::Create(IA_1, inlineLBDLArgs, "meta_base_load_t", insert_at);
+    bound_load_hw = CallInst::Create(IA_2, inlineLBDUArgs, "meta_bound_load_t", insert_at);
+
+    associateBaseBound(load_inst_value, base_load_hw, bound_load_hw);
+
     //kenny modify and marked the pointer association of the based/bound as "0" that indicates the base/bound shall be loaded later by perform lbdu/lbdl instruction to load base/bound from hardware shadow memory
 
     /* Trying to use metadata to identify the Value loaded from Instruction contains base/bound in shadow memory, it is not working because the metadata is attached to the load instruction instead the value. Instead metadata (for instruction) maybe I shall try attribute. or use the std::map to track values
@@ -5497,7 +5519,7 @@ void SoftBoundCETS::insertMetadataLoad(LoadInst* load_inst){
     load->setMetadata("from_shadow", kenny_N);
     */
 
-    associateBaseBound(load_inst_value, pointer_operand_bitcast, pointer_operand_bitcast);
+    //associateBaseBound(load_inst_value, pointer_operand_bitcast, pointer_operand_bitcast);
   }
 
   if(temporal_safety){

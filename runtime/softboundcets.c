@@ -96,7 +96,7 @@ __SOFTBOUNDCETS_NORETURN void __softboundcets_abort()
   //kenny add disabling bound check if abort
   //__asm__ volatile("csrw 0x800, x0");
   
-  abort();
+  abort(); //kenny disable SoftboundCETS abort?
 }
 
 static int softboundcets_initialized = 0;
