@@ -2251,25 +2251,29 @@ SoftBoundCETS::introduceShadowStackStores(Value* ptr_value,
     if (arg_no > 8)
       printf("kenny function argument larger than 8, metadata passing by shadow register will fail\n");
 
+    /*
     std::string topString = "bndr a";
     std::string numString = std::to_string(arg_no-1);
     std::string botString = ", $0, $1";
     std::string mergeString = topString + numString + botString;
     StringRef asmString = mergeString;
-    //StringRef asmString = "bndr $0, $1, $2";
-    StringRef constraints = "r,r";
+    */
+    StringRef asmString = "bndr $0, $1, $2";
+    //StringRef constraints = "r,r";
+    StringRef constraints = "=r,r,r,0";
     SmallVector<Value*, 8> inlineArgs;
     inlineArgs.push_back(ptr_base_cast);
     inlineArgs.push_back(ptr_bound_cast);
-    //inlineArgs.push_back(ptr_value);
-    //FunctionType *Fty = FunctionType::get(ptr_value->getType(), false);
-    FunctionType *Fty = FunctionType::get(Type::getVoidTy(ptr_value->getType()->getContext()), false);
+    inlineArgs.push_back(ptr_value);
+    FunctionType *Fty = FunctionType::get(ptr_value->getType(), false);
+    //FunctionType *Fty = FunctionType::get(Type::getVoidTy(ptr_value->getType()->getContext()), false);
     llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
     llvm::CallInst* bounded_func_arg;
     llvm::InlineAsm *IA = llvm::InlineAsm::get(Fty, asmString, constraints, true, false, asmDialect);
-    //bounded_func_arg = CallInst::Create(IA, inlineArgs, "ptr_func_arg", insert_at);
-    CallInst::Create(IA, inlineArgs, "", insert_at);
-
+    //CallInst::Create(IA, inlineArgs, "", insert_at);
+    bounded_func_arg = CallInst::Create(IA, inlineArgs, "ptr_func_arg", insert_at);
+    //5566 replace the func arg by bounded_func_arg
+    insert_at->setOperand(arg_no-1, bounded_func_arg); //replace the virtual reg to the load/store instruction    
   }
 
   if(temporal_safety){
@@ -2380,11 +2384,16 @@ SoftBoundCETS::introduceShadowStackLoads(Value* ptr_value,
     The metadata is now inside the argument register aX (x=arg_no) for example a0, now we want to store the metadata in a0's shadow register into the shadow memory and loaded back from shadow memory to general register so we can associate them.
     */
     
-    //5566
-
     //perform sbd of aX
+    Instruction* first_inst_func = dyn_cast<Instruction>(insert_at->getParent()->getParent()->begin()->begin());
+    AllocaInst* base_alloca;
+    AllocaInst* bound_alloca;
+    base_alloca = new AllocaInst(m_void_ptr_type, m_void_ptr_type->getPointerAddressSpace(), "base.alloca", first_inst_func);
+    bound_alloca = new AllocaInst(m_void_ptr_type, m_void_ptr_type->getPointerAddressSpace(), "bound.alloca", first_inst_func);
+
     SmallVector<Value*, 8> inlineArgs;
-    inlineArgs.push_back(ptr_value);    
+    //inlineArgs.push_back(ptr_value);
+    inlineArgs.push_back(base_alloca);
     FunctionType *Fty = FunctionType::get(Type::getVoidTy(insert_at->getType()->getContext()), false);    
     llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
     std::string arg_no_string = std::to_string(arg_no-1);
@@ -2398,19 +2407,16 @@ SoftBoundCETS::introduceShadowStackLoads(Value* ptr_value,
     CallInst::Create(IA, inlineArgs, "", insert_at);
     
     //perform lbd to base and bound
-    AllocaInst* base_alloca;
-    AllocaInst* bound_alloca;
-    Instruction* first_inst_func = dyn_cast<Instruction>(insert_at->getParent()->getParent()->begin()->begin());
-    base_alloca = new AllocaInst(m_void_ptr_type, m_void_ptr_type->getPointerAddressSpace(), "base.alloca", first_inst_func);
-    bound_alloca = new AllocaInst(m_void_ptr_type, m_void_ptr_type->getPointerAddressSpace(), "bound.alloca", first_inst_func);
     StringRef asmStringLBDL = "lbdl $0, 0($1)";
     StringRef asmStringLBDU = "lbdu $0, 0($1)";
     StringRef constraintsLBD = "=r,r,0";
     SmallVector<Value*, 8> inlineLBDLArgs;
     SmallVector<Value*, 8> inlineLBDUArgs;
-    inlineLBDLArgs.push_back(ptr_value);
+    //inlineLBDLArgs.push_back(ptr_value);
     inlineLBDLArgs.push_back(base_alloca);
-    inlineLBDUArgs.push_back(ptr_value);
+    inlineLBDLArgs.push_back(base_alloca);
+    //inlineLBDUArgs.push_back(ptr_value);
+    inlineLBDUArgs.push_back(base_alloca); //this is base because we only use the base's shadow memory to store the shadow reg
     inlineLBDUArgs.push_back(bound_alloca);
     FunctionType *FtyLBD = FunctionType::get(ptr_value->getType(), false);
     llvm::InlineAsm::AsmDialect asmDialectLBD = InlineAsm::AD_ATT;
@@ -4837,7 +4843,7 @@ SoftBoundCETS:: iterateCallSiteIntroduceShadowStackStores(CallInst* call_inst){
     Value* arg_value = cs.getArgument(i);
     if(isa<PointerType>(arg_value->getType())){
       introduceShadowStackStores(arg_value, call_inst, pointer_arg_no);
-      //pointer_arg_no++; // kenny this number means 1st is the first pointer and 2nd is second pointer instead the acture argument number in the function. But now we are assigning it into the acture register which contains the pointer this this number shall indicate the acture argument number.
+      //pointer_arg_no++; // kenny when this  number is 1 means  the first pointer and 2 for second pointer instead the acture argument number in the function. But this is not what we need. Now we are assigning it into the actural register which contains the pointer this this number shall indicate the acture argument number.
     }
     pointer_arg_no++; // kenny this number means 1st is the first pointer and 2nd is second pointer instead the acture argument number in the function. But now we are assigning it into the acture register which contains the pointer this this number shall indicate the acture argument number. THIS ONE SUPPORT THE ACTURE ARG_NO
     if(pointer_arg_no > 8)
@@ -5209,7 +5215,7 @@ void SoftBoundCETS::gatherBaseBoundPass1 (Function * func) {
       continue;
 
     /* it is a pointer, so increment the arg count */
-    //arg_count++;  //same reason of Line::4838 which we should only count for pointer but acture position of the arg.
+    //arg_count++;  //same reason of Line::4838 which we count the arg location instead number of pointers
 
     Argument* ptr_argument = dyn_cast<Argument>(ib);
     Value* ptr_argument_value = ptr_argument;
