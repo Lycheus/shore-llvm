@@ -104,6 +104,7 @@ static int softboundcets_initialized = 0;
 __NO_INLINE void __softboundcets_stub(void) {
   return;
 }
+
 void __softboundcets_init(void) 
 {
   if (softboundcets_initialized != 0) {
@@ -303,6 +304,17 @@ int main(int argc, char **argv){
 
   __softboundcets_allocate_shadow_stack_space(2);
 
+#ifdef __HW_SECURITY
+
+  //kenny handle the base/bound shadow stack setup for main func using hardware
+  asm volatile ("bndr %[rd], %[rs1], %[rs2]"
+		: [rd]"+r" (new_argv)
+		: [rs1]"r" (&new_argv[0]), [rs2]"r" (temp_ptr)
+		:
+		);
+
+#else
+  
 #ifdef __SOFTBOUNDCETS_SPATIAL
 
   __softboundcets_store_base_shadow_stack(&new_argv[0], 1);
@@ -329,6 +341,7 @@ int main(int argc, char **argv){
   __softboundcets_store_lock_shadow_stack(argv_loc, 1);
 
 #endif
+#endif //endif __HW_SECURITY
   
   //  printf("before calling program main\n");
   return_value = softboundcets_pseudo_main(argc, new_argv);

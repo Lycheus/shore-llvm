@@ -1672,20 +1672,42 @@ __WEAK_INLINE void* softboundcets_malloc(size_t size) {
 
   char* ret_ptr = (char*)malloc(size);
   if(ret_ptr == NULL){
+    
+#ifdef __HW_SECURITY
+    
+    asm volatile ("bndr {a0}, zero, zero"
+		  :
+		  : 
+		  : "a0"
+		  );
+#else
     __softboundcets_store_null_return_metadata();
+#endif
+    
   }
   else{
 
+#ifndef __HW_SECURITY
 #ifdef __SOFTBOUNDCETS_TEMPORAL 
     __softboundcets_memory_allocation(ret_ptr, &ptr_lock, &ptr_key);
 #elif __SOFTBOUNDCETS_SPATIAL_TEMPORAL
     __softboundcets_memory_allocation(ret_ptr, &ptr_lock, &ptr_key);
 #endif
-
+#endif
+    
     char* ret_bound = ret_ptr + size;
+
+#ifdef __HW_SECURITY
+    // [rd] (shall be a0) is the return register which contains the pointer and it's shadow registers contain the base/bound
+    asm volatile ("bndr %[rd], %[rs1], %[rs2]"
+		  : [rd]"+r" (ret_ptr)
+		  : [rs1]"r" (ret_ptr), [rs2]"r" (ret_bound)
+		  : 
+		  );    
+#else
     __softboundcets_store_return_metadata(ret_ptr, ret_bound, 
                                           ptr_key, ptr_lock);
-
+#endif
     if(__SOFTBOUNDCETS_FREE_MAP) {
 #if 0
        __softboundcets_printf("malloc ptr=%p, ptr_key=%zx\n", 

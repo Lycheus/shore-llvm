@@ -347,6 +347,11 @@ __WEAK_INLINE void* __softboundcets_load_base_shadow_stack(int arg_no){
   asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
   #endif
 
+  //when we use the hardware managed shadow memory, there shall be no load/store from software shadow stack
+#ifdef __HW_SECURITY
+  printf("kenny: sombody is using load_base_shadow_stack\n");
+#endif
+  
   assert (arg_no >= 0 );
   size_t count = 2 +  arg_no * __SOFTBOUNDCETS_METADATA_NUM_FIELDS + __BASE_INDEX ;
   size_t* base_ptr = (__softboundcets_shadow_stack_ptr + count); 
@@ -368,6 +373,11 @@ __WEAK_INLINE void* __softboundcets_load_bound_shadow_stack(int arg_no){
   asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
   #endif
 
+  //when we use the hardware managed shadow memory, there shall be no load/store from software shadow stack
+#ifdef __HW_SECURITY
+  printf("kenny: sombody is using load_bound_shadow_stack\n");
+#endif
+  
   assert (arg_no >= 0 );
   size_t count = 2 + arg_no * __SOFTBOUNDCETS_METADATA_NUM_FIELDS  + __BOUND_INDEX ;
   size_t* bound_ptr = (__softboundcets_shadow_stack_ptr + count); 
@@ -426,44 +436,70 @@ __WEAK_INLINE void* __softboundcets_load_lock_shadow_stack(int arg_no){
 
 __WEAK_INLINE void __softboundcets_store_base_shadow_stack(void* base, int arg_no){
   //BEGIN
-  #ifdef __FUNC_CYCLE
+#ifdef __FUNC_CYCLE
   //kenny record the cycle count
   unsigned long rdcycle_start, rdcycle_end;
   asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
-  #endif
+#endif
+  
+  //kenny it is wrong, a0 does not contain the bound but a0's shadow register contains it
+  //kenny should use conatant register a0, instead it shall depend on arg_no
+  /*
+#ifdef __HW_SECURITY
+  
+  asm volatile ("bndr {a0}, %[rs1], {a0}"
+		: 
+		: [rs1]"r" (base)
+		: "a0"
+		);  
+  
+#else
+  */
 
+  //when we use the hardware managed shadow memory, there shall be no load/store from software shadow stack
+#ifdef __HW_SECURITY
+  printf("kenny: sombody is using store_base_shadow_stack\n");
+#endif
+  
   assert(arg_no >= 0);
   size_t count = 2 +  arg_no * __SOFTBOUNDCETS_METADATA_NUM_FIELDS + __BASE_INDEX ;
   void** base_ptr = (void**)(__softboundcets_shadow_stack_ptr + count); 
-
+  
   *(base_ptr) = base;
 
+//#endif
   
-  #ifdef __FUNC_CYCLE
+#ifdef __FUNC_CYCLE
   asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
   sbas_cycle += rdcycle_end - rdcycle_start;
-  #endif
+#endif
   
 }
 
 __WEAK_INLINE void __softboundcets_store_bound_shadow_stack(void* bound, int arg_no){
   //BEGIN
-  #ifdef __FUNC_CYCLE
+#ifdef __FUNC_CYCLE
   //kenny record the cycle count
   unsigned long rdcycle_start, rdcycle_end;
   asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
-  #endif
-
+#endif
+  
+  //when we use the hardware managed shadow memory, there shall be no load/store from software shadow stack
+#ifdef __HW_SECURITY
+  printf("kenny: sombody is using store_bound_shadow_stack\n");
+#endif
+  
   assert(arg_no >= 0);
   size_t count = 2 +  arg_no * __SOFTBOUNDCETS_METADATA_NUM_FIELDS + __BOUND_INDEX ;
   void** bound_ptr = (void**)(__softboundcets_shadow_stack_ptr + count); 
-
+  
   *(bound_ptr) = bound;
 
-  #ifdef __FUNC_CYCLE
+  
+#ifdef __FUNC_CYCLE
   asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
   sbds_cycle += rdcycle_end - rdcycle_start;
-  #endif
+#endif
 
 }
 
@@ -1241,7 +1277,12 @@ __METADATA_INLINE void __softboundcets_metadata_store(void* addr_of_ptr,
  }
 
  __WEAK_INLINE void* __softboundcets_metadata_load_base(void* address){
-      
+
+   //when we use the hardware managed shadow memory, there shall be no load/store from software shadow stack
+#ifdef __HW_SECURITY
+  printf("kenny: sombody is using metadata_load_base\n");
+#endif
+  
    __softboundcets_trie_entry_t* entry_ptr = (__softboundcets_trie_entry_t*)address;
    return entry_ptr->base;
    
@@ -1249,6 +1290,11 @@ __METADATA_INLINE void __softboundcets_metadata_store(void* addr_of_ptr,
 
  __WEAK_INLINE void* __softboundcets_metadata_load_bound(void* address){
 
+   //when we use the hardware managed shadow memory, there shall be no load/store from software shadow stack
+#ifdef __HW_SECURITY
+  printf("kenny: sombody is using metadata_load_bound\n");
+#endif
+  
    __softboundcets_trie_entry_t* entry_ptr = (__softboundcets_trie_entry_t*)address;
    return entry_ptr->bound;
 

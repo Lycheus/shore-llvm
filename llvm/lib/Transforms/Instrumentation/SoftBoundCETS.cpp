@@ -1296,14 +1296,14 @@ bool SoftBoundCETS::isFuncDefSoftBound(const std::string &str) {
     m_func_wrappers_available["fabsf"] = true;
     m_func_wrappers_available["tan"] = true;
     m_func_wrappers_available["tanf"] = true;
-    //m_func_wrappers_available["tanl"] = true;
+    m_func_wrappers_available["tanl"] = true;
     m_func_wrappers_available["log10"] = true;
     m_func_wrappers_available["sin"] = true;
     m_func_wrappers_available["sinf"] = true;
-    //m_func_wrappers_available["sinl"] = true;
+    m_func_wrappers_available["sinl"] = true;
     m_func_wrappers_available["cos"] = true;
     m_func_wrappers_available["cosf"] = true;
-    //m_func_wrappers_available["cosl"] = true;
+    m_func_wrappers_available["cosl"] = true;
     m_func_wrappers_available["exp"] = true;
     m_func_wrappers_available["ldexp"] = true;
     m_func_wrappers_available["tmpfile"] = true;
@@ -1351,7 +1351,7 @@ bool SoftBoundCETS::isFuncDefSoftBound(const std::string &str) {
     m_func_wrappers_available["abort"] = true;
     m_func_wrappers_available["rand"] = true;
     m_func_wrappers_available["atoi"] = true;
-    //m_func_wrappers_available["puts"] = true;
+    m_func_wrappers_available["puts"] = true;
     m_func_wrappers_available["exit"] = true;
     m_func_wrappers_available["strtok"] = true;
     m_func_wrappers_available["strdup"] = true;
@@ -1741,19 +1741,20 @@ void SoftBoundCETS::addStoreBaseBoundFunc(Value* pointer_dest,
   */
   SmallVector<Value*, 8> inlineArgs;
   //step one: prepare the base and bound and insert the inlineASM
-  inlineArgs.push_back(pointer);
   inlineArgs.push_back(pointer_base_cast);
   inlineArgs.push_back(pointer_bound_cast);
-
+  
   //step two: reference the pointer and get the pointer's container address using getelementptr
   inlineArgs.push_back(pointer_dest_cast);
+  inlineArgs.push_back(pointer);
 
   //step three: performance the metadata store using the sbdl/sbdu instruction
-  FunctionType *Fty = FunctionType::get(Type::getVoidTy(insert_at->getType()->getContext()), false);
+  //FunctionType *Fty = FunctionType::get(Type::getVoidTy(insert_at->getType()->getContext()), false);
+  FunctionType *Fty = FunctionType::get(pointer->getType(), false);
   
   llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
   StringRef asmString = "bndr $0, $1, $2\n\tsbdl $0, 0($3)\n\tsbdu $0, 0($3)";
-  StringRef constraints = "r,r,r,r";
+  StringRef constraints = "=r,r,r,r,0";
 
   //kenny inline binding the base/bound to the register containing pointer for load
   llvm::InlineAsm *IA = llvm::InlineAsm::get(Fty, asmString, constraints, true, false, asmDialect);
@@ -2272,7 +2273,7 @@ SoftBoundCETS::introduceShadowStackStores(Value* ptr_value,
     llvm::InlineAsm *IA = llvm::InlineAsm::get(Fty, asmString, constraints, true, false, asmDialect);
     //CallInst::Create(IA, inlineArgs, "", insert_at);
     bounded_func_arg = CallInst::Create(IA, inlineArgs, "ptr_func_arg", insert_at);
-    //5566 replace the func arg by bounded_func_arg
+    //replace the func arg by bounded_func_arg
     insert_at->setOperand(arg_no-1, bounded_func_arg); //replace the virtual reg to the load/store instruction    
   }
 
@@ -2393,16 +2394,23 @@ SoftBoundCETS::introduceShadowStackLoads(Value* ptr_value,
 
     SmallVector<Value*, 8> inlineArgs;
     //inlineArgs.push_back(ptr_value);
+    //base_alloca is the arg pointer's virtual reg for base, and the real reg's shadow reg can store both base and bound
+
+    /*
     inlineArgs.push_back(base_alloca);
-    FunctionType *Fty = FunctionType::get(Type::getVoidTy(insert_at->getType()->getContext()), false);    
-    llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
     std::string arg_no_string = std::to_string(arg_no-1);
     std::string string1 = "sbdl a";
     std::string string2 = ", 0($0)\n\tsbdu a";
     std::string string3 = ", 0($0)";
     std::string mergeString = string1 + arg_no_string + string2 + arg_no_string + string3;
     StringRef asmString = mergeString;
-    StringRef constraints = "r";
+    */
+    inlineArgs.push_back(ptr_value);
+    inlineArgs.push_back(base_alloca);
+    StringRef asmString = "sbdl $0, 0($1)\n\tsbdu $0, 0($1)";
+    StringRef constraints = "r,r";
+    FunctionType *Fty = FunctionType::get(Type::getVoidTy(insert_at->getType()->getContext()), false);    
+    llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
     llvm::InlineAsm *IA = llvm::InlineAsm::get(Fty, asmString, constraints, true, false, asmDialect);
     CallInst::Create(IA, inlineArgs, "", insert_at);
     
@@ -4847,7 +4855,7 @@ SoftBoundCETS:: iterateCallSiteIntroduceShadowStackStores(CallInst* call_inst){
     }
     pointer_arg_no++; // kenny this number means 1st is the first pointer and 2nd is second pointer instead the acture argument number in the function. But now we are assigning it into the acture register which contains the pointer this this number shall indicate the acture argument number. THIS ONE SUPPORT THE ACTURE ARG_NO
     if(pointer_arg_no > 8)
-      printf("kenny error: pointer_arg_no > 8 arguement are larger than 8, shadow register arguement passing failed");
+      printf("kenny error: pointer_arg_no > 8 arguement are larger than 8, shadow register arguement passing failed\n");
   }    
 }
 
@@ -5210,7 +5218,7 @@ void SoftBoundCETS::gatherBaseBoundPass1 (Function * func) {
 
     arg_count++;
     if(arg_count > 8)
-      printf("kenny error: arg_count > 8 arguement are larger than 8, shadow register arguement passing failed");
+      printf("kenny error: arg_count > 8 arguement are larger than 8, shadow register arguement passing failed\n");
     if(!isa<PointerType>(ib->getType())) 
       continue;
 
