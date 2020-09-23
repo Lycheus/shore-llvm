@@ -74,6 +74,7 @@ size_t* __softboundcets_stack_temporal_space_begin = NULL;
 void* malloc_address = NULL;
 
 __SOFTBOUNDCETS_NORETURN void __softboundcets_abort()
+//void __softboundcets_abort() //kenny disable softbound violation abort
 {
   //kenny print return address to identify the location of the violation
   //unsigned long return_addr;
@@ -97,6 +98,7 @@ __SOFTBOUNDCETS_NORETURN void __softboundcets_abort()
   //__asm__ volatile("csrw 0x800, x0");
   
   abort(); //kenny disable SoftboundCETS abort?
+  //return;
 }
 
 static int softboundcets_initialized = 0;
@@ -161,7 +163,7 @@ void __softboundcets_init(void)
                                           SOFTBOUNDCETS_MMAP_FLAGS, -1, 0);
   assert(__softboundcets_shadow_stack_ptr != (void*)-1);
 
-  *((size_t*)__softboundcets_shadow_stack_ptr) = 0; /* prev stack size */
+  *((size_t*)__softboundcets_shadow_stack_ptr) = 0; //prev stack size
   size_t * current_size_shadow_stack_ptr =  __softboundcets_shadow_stack_ptr +1 ;
   *(current_size_shadow_stack_ptr) = 0;
 
@@ -192,7 +194,9 @@ void __softboundcets_init(void)
 
 }
 
-static void softboundcets_init_ctype(){  
+/*
+static void softboundcets_init_ctype(){
+
 #if defined(__linux__)
 
   char* ptr;
@@ -222,8 +226,9 @@ static void softboundcets_init_ctype(){
 #endif
 
 #endif // __linux ends 
-}
 
+}
+*/
 
 void __softboundcets_printf(const char* str, ...)
 {
@@ -243,9 +248,12 @@ int main(int argc, char **argv){
 #endif
   
   char** new_argv = argv;
-  int i;
   char* temp_ptr;
   int return_value;
+
+  
+  /*
+  int i;
   size_t argv_key;
   void* argv_loc;
 
@@ -255,6 +263,7 @@ int main(int argc, char **argv){
 
   __softboundcets_stack_memory_allocation(&argv_loc, &argv_key);
 
+  
 #if defined(__linux__)
   mallopt(M_MMAP_MAX, 0);
 #endif
@@ -288,11 +297,11 @@ int main(int argc, char **argv){
 
 #endif
 
-
   }
+  */
 
   //  printf("before init_ctype\n");
-  softboundcets_init_ctype();
+  //softboundcets_init_ctype();
 
   /* Santosh: Real Nasty hack because C programmers assume argv[argc]
    * to be NULL. Also this NUll is a pointer, doing + 1 will make the
@@ -302,7 +311,7 @@ int main(int argc, char **argv){
 
   /* &new_argv[0], temp_ptr, argv_key, argv_loc * the metadata */
 
-  __softboundcets_allocate_shadow_stack_space(2);
+
 
 #ifdef __HW_SECURITY
 
@@ -314,6 +323,7 @@ int main(int argc, char **argv){
 		);
 
 #else
+  __softboundcets_allocate_shadow_stack_space(2);
   
 #ifdef __SOFTBOUNDCETS_SPATIAL
 
@@ -345,9 +355,9 @@ int main(int argc, char **argv){
   
   //  printf("before calling program main\n");
   return_value = softboundcets_pseudo_main(argc, new_argv);
-  __softboundcets_deallocate_shadow_stack_space();
+  //__softboundcets_deallocate_shadow_stack_space();
 
-  __softboundcets_stack_memory_deallocation(argv_key);
+  //__softboundcets_stack_memory_deallocation(argv_key);
 
   return return_value;
 }

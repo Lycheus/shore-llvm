@@ -115,8 +115,19 @@ extern void __softboundcets_process_memory_total();
 
 __WEAK_INLINE void 
 __softboundcets_read_shadow_stack_metadata_store(char** endptr, int arg_num){
-  
 
+#ifdef __HW_SECURITY
+
+  printf("kenny warning: somebody using read_shadow_stack_metadata_store, we presume it only use arg_num=1\n");
+  
+  asm volatile ("sbdl a0, 0(%[rs])\n\tsbdu a0, 0(%[rs])"
+		: 
+		: [rs]"r" (endptr)
+		:
+		);
+
+#else
+  
 #ifdef __SOFTBOUNDCETS_SPATIAL
     void* nptr_base = __softboundcets_load_base_shadow_stack(arg_num);
     void* nptr_bound = __softboundcets_load_bound_shadow_stack(arg_num);
@@ -148,12 +159,39 @@ __softboundcets_read_shadow_stack_metadata_store(char** endptr, int arg_num){
                                    nptr_lock);
 
 #endif
-
+#endif //end __HW_SECURITY
 }
 
 __WEAK_INLINE void 
 __softboundcets_propagate_metadata_shadow_stack_from(int from_argnum, 
                                                      int to_argnum){
+
+#ifdef __HW_SECURITY
+  printf("kenny warning: somebody is using propagate_metadata_shadow_stack_from (which is not correctly impl.)\n");
+
+  /*
+  if (from_argnum == 1)
+    {
+      asm volatile ("shall copy the shadow register of a1 to a0 but not change the value in a0"
+		    :
+		    :
+		    :
+		    );
+
+    }
+  if (from_argnum == 2)
+    {
+      asm volatile ("shall copy the shadow register of a2 to a0 but not change the value in a0"
+		    :
+		    :
+		    :
+		    );
+    }
+  else
+    printf("kenny: from_argnum is not supported please check\n");
+  */
+  
+#else
   
 #ifdef __SOFTBOUNDCETS_SPATIAL
 
@@ -195,12 +233,24 @@ __softboundcets_propagate_metadata_shadow_stack_from(int from_argnum,
   __softboundcets_store_lock_shadow_stack(lock, to_argnum);
 
 #endif
-
+#endif //end __HW_SECURITY
 
 }
 
 __WEAK_INLINE void __softboundcets_store_null_return_metadata(){
 
+#ifdef __HW_SECURITY
+  printf("kenny warning: store_null_return not working because after the return the result is immediatly covered by mv a0, a1\n");
+  /*
+  register int *reg_a0 asm ("a0");
+  asm volatile ("bndr %[rd], zero, zero"
+		: [rd]"+r"(reg_a0)
+		: 
+		: 
+		);
+  */
+#else
+  
 #ifdef __SOFTBOUNDCETS_SPATIAL
 
   __softboundcets_store_base_shadow_stack(NULL, 0);
@@ -226,13 +276,25 @@ __WEAK_INLINE void __softboundcets_store_null_return_metadata(){
   __softboundcets_store_lock_shadow_stack(NULL, 0);
 
 #endif
-
+#endif //end __HW_SECURITY
 }
 
 __WEAK_INLINE void 
 __softboundcets_store_return_metadata(void* base, void* bound, size_t key, 
                                       void* lock){
 
+#ifdef __HW_SECURITY
+  printf("kenny warning: store_return_metadata not working because after the return the result is immediatly covered by mv a0, a1\n");
+  /*
+  register int *reg_a0 asm ("a0");
+  asm volatile ("bndr %[rd], %[rs1], %[rs2]"
+		: [rd]"+r"(reg_a0)
+		: [rs1]"r" (base), [rs2]"r" (bound)
+		: 
+		);
+  */
+#else
+      
 #ifdef __SOFTBOUNDCETS_SPATIAL
 
   __softboundcets_store_base_shadow_stack(base, 0);
@@ -260,6 +322,7 @@ __softboundcets_store_return_metadata(void* base, void* bound, size_t key,
   __softboundcets_store_lock_shadow_stack(lock, 0);
 
 #endif
+#endif //end __HW_SECURITY
 }
 
 
@@ -1503,7 +1566,23 @@ softboundcets_strncat (char* dest,const char* src, size_t n){
 
 __WEAK_INLINE char* 
 softboundcets_strncpy(char* dest, char* src, size_t n){
- 
+
+#ifdef __HW_SECURITY
+  printf("kenny: entering hardware strncpy\n");
+
+  //load from shadow register a0 and a1
+  //do the check
+  //propagate metadata from a1 to a0
+  
+  register int *reg_a0 asm ("a0");
+  asm volatile ("bndr %[rd], zero, zero"
+		: [rd]"+r"(reg_a0)
+		: 
+		: 
+		);
+
+#else
+  
 #ifdef __SOFTBOUNDCETS_SPATIAL  
   char* dest_base = __softboundcets_load_base_shadow_stack(1);
   char* dest_bound = __softboundcets_load_bound_shadow_stack(1);
@@ -1542,9 +1621,9 @@ softboundcets_strncpy(char* dest, char* src, size_t n){
   }
 #endif
 #endif
-  
+#endif //end __HW_SECURITY
   char* ret_ptr = strncpy(dest, src, n);
-  __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
+  __softboundcets_propagate_metadata_shadow_stack_from(1, 0); //basically copying from a1 to a0 (which is also the return value ret_ptr)
   return ret_ptr;
 }
 
@@ -1667,19 +1746,18 @@ __WEAK_INLINE void* softboundcets_mmap(void* addr, size_t length,
  
 __WEAK_INLINE void* softboundcets_malloc(size_t size) {
   
-  key_type ptr_key=1;
-  lock_type ptr_lock=NULL;
 
   char* ret_ptr = (char*)malloc(size);
   if(ret_ptr == NULL){
     
 #ifdef __HW_SECURITY
-    
-    asm volatile ("bndr {a0}, zero, zero"
-		  :
+    register int *reg_a0 asm ("a0");
+    asm volatile ("bndr %[rd], zero, zero"
+		  : [rd]"+r"(reg_a0)
 		  : 
-		  : "a0"
+		  : 
 		  );
+
 #else
     __softboundcets_store_null_return_metadata();
 #endif
@@ -1688,7 +1766,11 @@ __WEAK_INLINE void* softboundcets_malloc(size_t size) {
   else{
 
 #ifndef __HW_SECURITY
-#ifdef __SOFTBOUNDCETS_TEMPORAL 
+    key_type ptr_key=1;
+    lock_type ptr_lock=NULL;
+    
+#ifdef __SOFTBOUNDCETS_TEMPORAL
+
     __softboundcets_memory_allocation(ret_ptr, &ptr_lock, &ptr_key);
 #elif __SOFTBOUNDCETS_SPATIAL_TEMPORAL
     __softboundcets_memory_allocation(ret_ptr, &ptr_lock, &ptr_key);
