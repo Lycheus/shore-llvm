@@ -316,6 +316,10 @@ __WEAK_INLINE void __boff(){
   
 __WEAK_INLINE void __softboundcets_allocate_shadow_stack_space(int num_pointer_args){
 
+#ifdef __HW_SECURITY
+  printf("kenny warning: using allocate_shadow_stack_space\n");
+#endif
+
   /*
   //BEGIN
   #ifdef __FUNC_CYCLE
@@ -343,6 +347,11 @@ __WEAK_INLINE void __softboundcets_allocate_shadow_stack_space(int num_pointer_a
 }
    
 __WEAK_INLINE void* __softboundcets_load_base_shadow_stack(int arg_no){
+
+#ifdef __HW_SECURITY
+  printf("kenny warning: using load_base_shadow_stack\n");
+#endif
+    
   /*
   //BEGIN
   #ifdef __FUNC_CYCLE
@@ -372,6 +381,11 @@ __WEAK_INLINE void* __softboundcets_load_base_shadow_stack(int arg_no){
 }
 
 __WEAK_INLINE void* __softboundcets_load_bound_shadow_stack(int arg_no){
+
+#ifdef __HW_SECURITY
+  printf("kenny warning: using load_bound_shadow_stack\n");
+#endif
+    
   /*
   //BEGIN
   #ifdef __FUNC_CYCLE
@@ -444,6 +458,11 @@ __WEAK_INLINE void* __softboundcets_load_lock_shadow_stack(int arg_no){
 }
 
 __WEAK_INLINE void __softboundcets_store_base_shadow_stack(void* base, int arg_no){
+
+#ifdef __HW_SECURITY
+  printf("kenny warning: using store_base_shadow_stack\n");
+#endif
+    
   /*
   //BEGIN
 #ifdef __FUNC_CYCLE
@@ -488,6 +507,11 @@ __WEAK_INLINE void __softboundcets_store_base_shadow_stack(void* base, int arg_n
 }
 
 __WEAK_INLINE void __softboundcets_store_bound_shadow_stack(void* bound, int arg_no){
+
+#ifdef __HW_SECURITY
+  printf("kenny warning: using store_bound_shadow_stack\n");
+#endif
+    
   /*
   //BEGIN
 #ifdef __FUNC_CYCLE
@@ -1191,7 +1215,12 @@ __METADATA_INLINE void __softboundcets_metadata_store(void* addr_of_ptr,
                                                       size_t key, 
                                                       void* lock) {  
 
-#endif 
+#endif
+
+#ifdef __HW_SECURITY
+  printf("kenny warning: using metadata_store\n");
+#endif
+  
   /*
   //BEGIN
   #ifdef __FUNC_CYCLE
@@ -1357,6 +1386,11 @@ __METADATA_INLINE void __softboundcets_metadata_load(void* addr_of_ptr, void** b
                                                      void** bound, size_t* key, void** lock){
 
 #endif
+  
+#ifdef __HW_SECURITY
+  printf("kenny warning: using metadata_load\n");
+#endif
+
   /*
   //BEGIN
   #ifdef __FUNC_CYCLE

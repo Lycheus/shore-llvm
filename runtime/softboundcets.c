@@ -194,7 +194,7 @@ void __softboundcets_init(void)
 
 }
 
-/*
+
 static void softboundcets_init_ctype(){
 
 #if defined(__linux__)
@@ -204,6 +204,20 @@ static void softboundcets_init_ctype(){
 
   ptr = (void*) __ctype_b_loc();
   base_ptr = (void*) (*(__ctype_b_loc()));
+
+#ifdef __HW_SECURITY
+  //implenent the ctype initialization in hardware
+  void* k_base = (char*) base_ptr - 129;
+  void* k_bound = (char*) base_ptr + 256;
+  
+  asm volatile("bndr %[container], %[base], %[bound]\n\tsbdl %[container], 0(%[container])\n\tsbdu %[container], 0(%[container])"
+	       : [container]"=r" (ptr)
+	       : [base]"r" (k_base), [bound]"r" (k_bound)
+	       :
+	       );
+  
+  
+#else
   __softboundcets_allocation_secondary_trie_allocate(base_ptr);
 
 #ifdef __SOFTBOUNDCETS_SPATIAL
@@ -219,6 +233,7 @@ static void softboundcets_init_ctype(){
                                  __softboundcets_global_lock);
 
 #else  
+
   __softboundcets_metadata_store(ptr, ((char*) base_ptr - 129), 
                                  ((char*) base_ptr + 256), 1, 
                                  __softboundcets_global_lock);
@@ -226,9 +241,10 @@ static void softboundcets_init_ctype(){
 #endif
 
 #endif // __linux ends 
-
+#endif // end of __HW_SECURITY
+  
 }
-*/
+
 
 void __softboundcets_printf(const char* str, ...)
 {
@@ -252,17 +268,17 @@ int main(int argc, char **argv){
   int return_value;
 
   
-  /*
   int i;
   size_t argv_key;
   void* argv_loc;
 
+  /*
   int* temp = malloc(1);
   malloc_address = temp;
   __softboundcets_allocation_secondary_trie_allocate_range(0, (size_t)temp);
 
   __softboundcets_stack_memory_allocation(&argv_loc, &argv_key);
-
+  */
   
 #if defined(__linux__)
   mallopt(M_MMAP_MAX, 0);
@@ -271,10 +287,26 @@ int main(int argc, char **argv){
   for(i = 0; i < argc; i++) { 
 
 #ifdef __SOFTBOUNDCETS_SPATIAL
-
+    /* replaced by hardware shadow space
     __softboundcets_metadata_store(&new_argv[i], 
                                    new_argv[i], 
                                    new_argv[i] + strlen(new_argv[i]) + 1);
+    */
+#ifdef __HW_SECURITY
+    
+    //kenny handle the base/bound for all main's argv argc
+    
+    void* k_container = &new_argv[i];
+    void* k_base = new_argv[i];
+    void* k_bound = new_argv[i] + strlen(new_argv[i]) + 1;
+  
+    asm volatile("bndr %[container], %[base], %[bound]\n\tsbdl %[container], 0(%[container])\n\tsbdu %[container], 0(%[container])"
+		 : [container]"=r" (k_container)
+		 : [base]"r" (k_base), [bound]"r" (k_bound)
+		 :
+		 );
+    
+#endif //end __HW_SECURITY
     
 #elif __SOFTBOUNDCETS_TEMPORAL
     //    printf("performing metadata store\n");
@@ -298,10 +330,9 @@ int main(int argc, char **argv){
 #endif
 
   }
-  */
 
   //  printf("before init_ctype\n");
-  //softboundcets_init_ctype();
+  softboundcets_init_ctype();
 
   /* Santosh: Real Nasty hack because C programmers assume argv[argc]
    * to be NULL. Also this NUll is a pointer, doing + 1 will make the
