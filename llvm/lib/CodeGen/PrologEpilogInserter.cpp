@@ -464,15 +464,22 @@ static void insertCSRSaves(MachineBasicBlock &SaveBlock,
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
   const TargetFrameLowering *TFI = MF.getSubtarget().getFrameLowering();
   const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
-
+  
   MachineBasicBlock::iterator I = SaveBlock.begin();
   if (!TFI->spillCalleeSavedRegisters(SaveBlock, I, CSI, TRI)) {
     for (const CalleeSavedInfo &CS : CSI) {
       // Insert the spill to the stack frame.
       unsigned Reg = CS.getReg();
       const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg);
-      TII.storeRegToStackSlot(SaveBlock, I, Reg, true, CS.getFrameIdx(), RC,
-                              TRI);
+      TII.storeRegToStackSlot(SaveBlock, I, Reg, true, CS.getFrameIdx(), RC, TRI);
+
+      /*
+      //t0-t2, s0-s11, please check RISCVRegisterInfo.td for detail
+      if ((Reg >= 6 && Reg <= 10) || (Reg >= 19 && Reg <=  32)){ 
+	  TII.storeSRegToStackSlot(SaveBlock, I, Reg, true, CS.getFrameIdx(), RC, TRI); //kenny added for shadow memory
+      }
+      */
+      
     }
   }
 }
@@ -494,6 +501,14 @@ static void insertCSRRestores(MachineBasicBlock &RestoreBlock,
       unsigned Reg = CI.getReg();
       const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg);
       TII.loadRegFromStackSlot(RestoreBlock, I, Reg, CI.getFrameIdx(), RC, TRI);
+
+      /*
+      //t0-t2, s0-s11, please check RISCVRegisterInfo.td for detail
+      if ((Reg >= 6 && Reg <= 10) || (Reg >= 19 && Reg <=  32)){ 
+	TII.loadSRegFromStackSlot(RestoreBlock, I, Reg, CI.getFrameIdx(), RC, TRI);  //kenny added for shadow memory
+      }
+      */
+      
       assert(I != RestoreBlock.begin() &&
              "loadRegFromStackSlot didn't insert any code!");
       // Insert in reverse order.  loadRegFromStackSlot can insert

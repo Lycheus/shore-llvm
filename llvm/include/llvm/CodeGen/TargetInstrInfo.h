@@ -898,6 +898,29 @@ public:
                      "TargetInstrInfo::loadRegFromStackSlot!");
   }
 
+  /// kenny In call convention, compile will store the conflict registers to stack when
+  /// entering a function. Because the security hardware for RISC-V introduce an shadow
+  /// register which holding metadata of pointers, thus the CSR shall also store the
+  /// shadow registers into shadow memory.
+  virtual void storeSRegToStackSlot(MachineBasicBlock &MBB,
+                                   MachineBasicBlock::iterator MI,
+                                   unsigned SrcReg, bool isKill, int FrameIndex,
+                                   const TargetRegisterClass *RC,
+                                   const TargetRegisterInfo *TRI) const {
+    llvm_unreachable("Target didn't implement "
+                     "TargetInstrInfo::storeRegToStackSlot!");
+  }
+
+  /// kenny similar operation but for restoring the shadow register from shadow memory.
+  virtual void loadSRegFromStackSlot(MachineBasicBlock &MBB,
+                                    MachineBasicBlock::iterator MI,
+                                    unsigned DestReg, int FrameIndex,
+                                    const TargetRegisterClass *RC,
+                                    const TargetRegisterInfo *TRI) const {
+    llvm_unreachable("Target didn't implement "
+                     "TargetInstrInfo::loadRegFromStackSlot!");
+  }
+
   /// This function is called for all pseudo instructions
   /// that remain after register allocation. Many pseudo instructions are
   /// created to help register allocation. This is the place to convert them

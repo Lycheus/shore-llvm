@@ -61,7 +61,6 @@
 #include <algorithm>
 #include <cstdarg>
 
-
 #include "llvm/Pass.h"
 #include "llvm/IR/CallingConv.h"
 #include "llvm/IR/LLVMContext.h"
@@ -98,7 +97,6 @@
 #include <cstdlib>
 #include <memory>
 #include<queue>
-
 
 
 using namespace llvm;
@@ -5913,6 +5911,8 @@ void SoftBoundCETS::identifyOriginalInst (Function * func) {
 
 bool SoftBoundCETS::runOnModule(Module& module) {
 
+  setenv("k_shadow_CSR", "1", true); //environmental var for enabling shadow_CalleeSR in backend
+  
   spatial_safety = true;
   //temporal_safety = true; //kenny enable temporal safety
   temporal_safety = false; //kenny disable temporal safety
@@ -5988,6 +5988,7 @@ bool SoftBoundCETS::runOnModule(Module& module) {
   renameFunctions(module);
 
   //Enable the shadow memory offset
+  // global_init -> init -> stub -> main -> pseudo_main
   RISCV_setupShadowMemoryOffset(module);
   
   //  DEBUG(errs()<<"Done with SoftBoundCETS\n");

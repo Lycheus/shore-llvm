@@ -630,6 +630,7 @@ __WEAK_INLINE double softboundcets_ldexp(double x, int exp) {
 
 __WEAK_INLINE FILE* softboundcets_tmpfile(void) {
 
+  printf("kenny warning: tmpfile\n");
   void* ret_ptr = tmpfile();
   void* ret_ptr_bound = (char*) ret_ptr + sizeof(FILE);
   __softboundcets_store_return_metadata(ret_ptr, ret_ptr_bound, 
@@ -696,7 +697,8 @@ __WEAK_INLINE int softboundcets_fsync(int fd){
 
 //This function wrapper might the the reason why Mibench/Dijkstra opt-O3 got memory violation?
 __WEAK_INLINE DIR* softboundcets_fdopendir(int fd){
-  
+
+  printf("kenny warning: fdopendir\n");
   void* ret_ptr = (void*) fdopendir(fd);
   void* ret_ptr_bound = (char *) ret_ptr + 1024 * 1024;
     __softboundcets_store_return_metadata(ret_ptr, ret_ptr_bound, 
@@ -775,7 +777,7 @@ __WEAK_INLINE int softboundcets_dirfd(DIR *dirp){
 
 __WEAK_INLINE struct lconv *softboundcets_localeconv(void){
   struct lconv* temp = localeconv();
-
+  printf("kenny warning: localeconv\n");
   __softboundcets_store_return_metadata(temp, temp + 1024, 
                                         1, (void*) __softboundcets_global_lock);
   
@@ -785,7 +787,7 @@ __WEAK_INLINE struct lconv *softboundcets_localeconv(void){
 __WEAK_INLINE struct tm *softboundcets_gmtime(const time_t *timep){
 
   struct tm * temp = gmtime(timep);
-
+  printf("kenny warning: gmtime\n");
   __softboundcets_store_return_metadata(temp, temp + 1024, 
                                         1, (void*) __softboundcets_global_lock);
 
@@ -895,8 +897,19 @@ __WEAK_INLINE FILE* softboundcets_fopen(const char* path, const char* mode){
   void* ret_ptr = (void*) fopen(path, mode);
   void* ret_ptr_bound = (char*) ret_ptr + sizeof(FILE);
 
+#ifdef __HW_SECURITY
+  asm volatile ("bndr %[rd], %[rs1], %[rs2]"
+		: [rd]"+r" (ret_ptr)
+		: [rs1]"r" (ret_ptr), [rs2]"r" (ret_ptr_bound)
+		:
+		);
+#else
+
+  printf("kenny warning: fopen\n");
   __softboundcets_store_return_metadata(ret_ptr, ret_ptr_bound, 
                                         1, (void*) __softboundcets_global_lock);
+  
+#endif
   return (FILE*)ret_ptr;
 }
 
@@ -904,7 +917,7 @@ __WEAK_INLINE FILE* softboundcets_fdopen(int fildes, const char* mode){
 
   void* ret_ptr = (void*) fdopen(fildes, mode);
   void* ret_ptr_bound = (char*) ret_ptr + sizeof(FILE);
-
+  printf("kenny warning: fdopen\n");
   __softboundcets_store_return_metadata(ret_ptr, ret_ptr_bound, 
                                         1, (void*)__softboundcets_global_lock);
   return (FILE*)ret_ptr;
@@ -926,7 +939,7 @@ __WEAK_INLINE FILE* softboundcets_popen(const char* command, const char* type){
 
   void* ret_ptr = (void*) popen(command, type);
   void* ret_ptr_bound = (char*)ret_ptr + sizeof(FILE);
-
+  printf("kenny warning: popen\n");
   __softboundcets_store_return_metadata(ret_ptr, ret_ptr_bound, 
                                         1, (void*) __softboundcets_global_lock);  
   return (FILE*)ret_ptr;
@@ -952,7 +965,7 @@ __WEAK_INLINE struct dirent*  softboundcets_readdir(DIR* dir){
 
   void* ret_ptr = (void*) readdir(dir);
   void* ret_ptr_bound = (char*)ret_ptr + sizeof(struct dirent);
-
+  printf("kenny warning: readdir\n");
   __softboundcets_store_return_metadata(ret_ptr, ret_ptr_bound, 
                                         1, (void*) __softboundcets_global_lock);
 
@@ -981,7 +994,7 @@ __WEAK_INLINE DIR* softboundcets_opendir(const char* name){
 
   /* FIX Required, don't know the sizeof(DIR) */
   void* ret_ptr_bound = (char*) ret_ptr + 1024* 1024;
-
+  printf("kenny warning: opendir\n");
   __softboundcets_store_return_metadata(ret_ptr, ret_ptr_bound, 
                                         1,  (void*)__softboundcets_global_lock);
 
@@ -1325,11 +1338,12 @@ softboundcets___getdelim(char **lineptr, size_t *n, int delim, FILE *stream){
   }
 
   ssize_t ret_val = getdelim(lineptr, n, delim, stream);
-  
+  printf("kenny warning: getdelim\n");
   if(metadata_prop){
     __softboundcets_read_shadow_stack_metadata_store(lineptr, 1);
   }
   else{
+
     __softboundcets_store_return_metadata(*lineptr, 
                                           (*lineptr) + strlen(*lineptr),
                                           1, __softboundcets_global_lock);
@@ -1405,7 +1419,21 @@ __WEAK_INLINE char* softboundcets_stpcpy(char* dest, char* src){
 }
 
 __WEAK_INLINE char* softboundcets_strcpy(char* dest, char* src){
+
+#ifdef __HW_SECURITY
+
+  //hardware check shall be perform here
+  //kenny FIXME: currently there is no check due to lack of access from shadow regiser to normal register
+
+  void* container = (void*) src;
+  asm volatile("sbdl %[src], 0(%[container])\n\tsbdu %[src], 0(%[container])"
+	       : 
+	       : [container]"r" (&container), [src]"r" (src)
+	       :
+	       );
   
+#else
+
 #ifdef __SOFTBOUNDCETS_SPATIAL  
   char* dest_base = __softboundcets_load_base_shadow_stack(1);
   char* dest_bound = __softboundcets_load_bound_shadow_stack(1);
@@ -1452,9 +1480,25 @@ __WEAK_INLINE char* softboundcets_strcpy(char* dest, char* src){
   }
 #endif
 #endif
-        
+#endif //end of __HW_SECURITY
+  
   void * ret_ptr = strcpy(dest, src);
+  
+#ifdef __HW_SECURITY
+  
+  // hardware replacement of  __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
+  // metadata from source shadow register shall be copy to dest shadow register
+
+  asm volatile("lbdl %[ret], 0(%[container])\n\tlbdu %[ret], 0(%[container])"
+	       : [ret]"=r" (ret_ptr)
+	       : [container]"r" (&container)
+	       :
+	       );
+
+#else
   __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
+#endif
+  
   return ret_ptr;
 }
 
@@ -1489,7 +1533,8 @@ __WEAK_INLINE void softboundcets_exit(int status) {
 
 __WEAK_INLINE char*  softboundcets_strtok(char* str, const char* delim){
   
-  char* ret_ptr = strtok(str, delim);   
+  char* ret_ptr = strtok(str, delim);
+  printf("kenny warning: strtok\n");
   __softboundcets_store_return_metadata((void*)0, (void*)(281474976710656), 
                                         1, __softboundcets_global_lock);
   return ret_ptr;
@@ -1498,12 +1543,15 @@ __WEAK_INLINE char*  softboundcets_strtok(char* str, const char* delim){
 __WEAK_INLINE void __softboundcets_strdup_handler(void* ret_ptr){
   key_type ptr_key;
   lock_type ptr_lock;
-  
+
+  printf("kenny warning: strdup_handler\n");
+    
   if(ret_ptr == NULL) {
     __softboundcets_store_null_return_metadata();
   }
   else {
-    //    printf("strndup malloced pointer %p\n", ret_ptr);    
+    //    printf("strndup malloced pointer %p\n", ret_ptr);
+
     __softboundcets_memory_allocation(ret_ptr, &ptr_lock, &ptr_key);
     __softboundcets_store_return_metadata(ret_ptr, 
                                           (void*)
@@ -1568,19 +1616,17 @@ __WEAK_INLINE char*
 softboundcets_strncpy(char* dest, char* src, size_t n){
 
 #ifdef __HW_SECURITY
-  printf("kenny: entering hardware strncpy\n");
 
-  //load from shadow register a0 and a1
-  //do the check
-  //propagate metadata from a1 to a0
+  //hardware check shall be perform here
+  //kenny FIXME: currently there is no check due to lack of access from shadow regiser to normal register
+
+  void* container = (void*) src;
+  asm volatile("sbdl %[src], 0(%[container])\n\tsbdu %[src], 0(%[container])"
+	       : 
+	       : [container]"r" (&container), [src]"r" (src)
+	       :
+	       );
   
-  register int *reg_a0 asm ("a0");
-  asm volatile ("bndr %[rd], zero, zero"
-		: [rd]"+r"(reg_a0)
-		: 
-		: 
-		);
-
 #else
   
 #ifdef __SOFTBOUNDCETS_SPATIAL  
@@ -1623,7 +1669,22 @@ softboundcets_strncpy(char* dest, char* src, size_t n){
 #endif
 #endif //end __HW_SECURITY
   char* ret_ptr = strncpy(dest, src, n);
-  __softboundcets_propagate_metadata_shadow_stack_from(1, 0); //basically copying from a1 to a0 (which is also the return value ret_ptr)
+
+#ifdef __HW_SECURITY
+  
+  // hardware replacement of  __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
+  // metadata from source shadow register shall be copy to dest shadow register
+
+  asm volatile("lbdl %[ret], 0(%[container])\n\tlbdu %[ret], 0(%[container])"
+	       : [ret]"=r" (ret_ptr)
+	       : [container]"r" (&container)
+	       :
+	       );
+
+#else
+  __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
+#endif
+
   return ret_ptr;
 }
 
@@ -1643,6 +1704,8 @@ softboundcets_strstr(const char* haystack, const char* needle){
 __WEAK_INLINE sighandler_t 
 softboundcets_signal(int signum, sighandler_t handler){
 
+  printf("kenny warning: signal\n");
+      
   sighandler_t ptr = signal(signum, handler);
   __softboundcets_store_return_metadata((void*)ptr, (void*) ptr, 
                                         1, __softboundcets_global_lock);
@@ -1659,12 +1722,16 @@ __WEAK_INLINE long softboundcets_atol(const char* nptr){
 }
 
 __WEAK_INLINE void* softboundcets_realloc(void* ptr, size_t size){
+
+  void* ret_ptr = realloc(ptr, size);
   
 #if 0
   /* TODO: may be necessary to copy metadata */
    printf("performing relloc, which can cause ptr=%p\n", ptr);
 #endif
-   void* ret_ptr = realloc(ptr, size);
+
+   
+#ifndef __HW_SECURITY
    __softboundcets_allocation_secondary_trie_allocate(ret_ptr);
    size_t ptr_key = 1;
    void* ptr_lock = __softboundcets_global_lock;
@@ -1680,54 +1747,98 @@ __WEAK_INLINE void* softboundcets_realloc(void* ptr, size_t size){
    ptr_lock = __softboundcets_load_lock_shadow_stack(1);
 #endif
 
+   printf("kenny warning: realloc\n");
    __softboundcets_store_return_metadata(ret_ptr, 
                                          (char*)(ret_ptr) + size, 
                                          ptr_key, ptr_lock);
+
    if(ret_ptr != ptr){
      __softboundcets_check_remove_from_free_map(ptr_key, ptr);
      __softboundcets_add_to_free_map(ptr_key, ret_ptr);
      __softboundcets_copy_metadata(ret_ptr, ptr, size);
    }
+#endif //end ifndef __HW_SECURITY
    
-   return ret_ptr;
- }
-
- __WEAK_INLINE void* softboundcets_calloc(size_t nmemb, size_t size) {
-   
-   key_type ptr_key = 1 ;
-   lock_type  ptr_lock = NULL;
-  
-   void* ret_ptr = calloc(nmemb, size);   
-   if(ret_ptr != NULL) {    
-
-#ifdef __SOFTBOUNDCETS_TEMPORAL     
-     __softboundcets_memory_allocation(ret_ptr, &ptr_lock, &ptr_key);     
-#elif __SOFTBOUNDCETS_SPATIAL_TEMPORAL
-     __softboundcets_memory_allocation(ret_ptr, &ptr_lock, &ptr_key);     
-#endif
-
-     __softboundcets_store_return_metadata(ret_ptr, 
-                                           ((char*)(ret_ptr) + (nmemb * size)), 
-                                           ptr_key, ptr_lock); 
-
-     if(__SOFTBOUNDCETS_FREE_MAP) {
-#if 0
-       __softboundcets_printf("calloc ptr=%p, ptr_key=%zx\n", 
-                              ret_ptr, ptr_key);
-#endif
-       //       __softboundcets_add_to_free_map(ptr_key, ret_ptr);
-     }
+#ifdef __HW_SECURITY
+   char* ret_ptr_bound = (char*)(ret_ptr) + size;
+   asm volatile ("bndr %[rd], %[rs1], %[rs2]"
+		 : [rd]"+r" (ret_ptr)
+		 : [rs1]"r" (ret_ptr), [rs2]"r" (ret_ptr_bound)
+		 :
+		 );
+   if(ret_ptr != ptr){
+     __softboundcets_copy_metadata(ret_ptr, ptr, size);
    }
-   else{
-     __softboundcets_store_null_return_metadata();
-   } 
+#endif
+   
    return ret_ptr;
- }
+}
+
+__WEAK_INLINE void* softboundcets_calloc(size_t nmemb, size_t size) {
+  
+  
+#ifndef __HW_SECURITY
+  printf("kenny warning: calloc\n");
+  
+  key_type ptr_key = 1 ;
+  lock_type  ptr_lock = NULL;
+  
+  void* ret_ptr = calloc(nmemb, size);   
+  if(ret_ptr != NULL) {    
+    
+#ifdef __SOFTBOUNDCETS_TEMPORAL     
+    __softboundcets_memory_allocation(ret_ptr, &ptr_lock, &ptr_key);     
+#elif __SOFTBOUNDCETS_SPATIAL_TEMPORAL
+    __softboundcets_memory_allocation(ret_ptr, &ptr_lock, &ptr_key);     
+#endif
+    
+    __softboundcets_store_return_metadata(ret_ptr, 
+					  ((char*)(ret_ptr) + (nmemb * size)), 
+					  ptr_key, ptr_lock); 
+    
+    if(__SOFTBOUNDCETS_FREE_MAP) {
+#if 0
+      __softboundcets_printf("calloc ptr=%p, ptr_key=%zx\n", 
+			     ret_ptr, ptr_key);
+#endif
+      //       __softboundcets_add_to_free_map(ptr_key, ret_ptr);
+    }
+  }
+  else{
+    __softboundcets_store_null_return_metadata();
+  }
+#endif //end of ifndef __HW_SECURITY
+  
+#ifdef __HW_SECURITY
+  void* ret_ptr = calloc(nmemb, size);
+  if(ret_ptr != NULL){
+    char* ret_ptr_bound = ((char*)(ret_ptr) + (nmemb * size));
+    
+    asm volatile ("bndr %[rd], %[rs1], %[rs2]"
+		  : [rd]"+r" (ret_ptr)
+		  : [rs1]"r" (ret_ptr), [rs2]"r" (ret_ptr_bound)
+		  :
+		  );
+  }
+  else{
+    asm volatile ("bndr %[rd], zero, zero"
+		  : [rd]"+r" (ret_ptr)
+		  : 
+		  :
+		  );
+  }
+  
+#endif
+  
+  return ret_ptr;
+}
 
 __WEAK_INLINE void* softboundcets_mmap(void* addr, size_t length, 
                                        int prot, int flags, int fd, 
                                        off_t offset){
 
+  printf("kenny warning: mmap\n");
+  
   key_type ptr_key=1;
   lock_type ptr_lock=__softboundcets_global_lock;
   char* ret_ptr = mmap(addr, length, prot, flags, fd, offset);
@@ -1830,7 +1941,8 @@ __WEAK_INLINE long softboundcets_pathconf(char *path, int name){
 
 
 __WEAK_INLINE struct tm* softboundcets_localtime(const time_t* timep){
-
+  printf("kenny warning: localtime\n");
+    
   struct tm * ret_ptr = localtime(timep);
   __softboundcets_store_return_metadata(ret_ptr, 
                                         (char*)ret_ptr + sizeof(struct tm), 
@@ -1893,7 +2005,8 @@ __WEAK_INLINE long int softboundcets_lrand48(){
 
 
 __WEAK_INLINE char* softboundcets_ctime( const time_t* timep){
-  
+  printf("kenny warning: ctime\n");
+      
   char* ret_ptr = ctime(timep);
 
   if(ret_ptr == NULL){
@@ -1928,18 +2041,37 @@ __WEAK_INLINE void softboundcets_setbuf(FILE* stream, char* buf){
 }
 
 __WEAK_INLINE char* softboundcets_getenv(const char* name){
-   
+
   char* ret_ptr = getenv(name);
-   
+#ifdef __HW_SECURITY
   if(ret_ptr != NULL){
+    char* ret_ptr_bound = ret_ptr + strlen(ret_ptr) + 1;
+    asm volatile ("bndr %[rd], %[rs1], %[rs2]"
+		  : [rd]"+r" (ret_ptr)
+		  : [rs1]"r" (ret_ptr), [rs2]"r" (ret_ptr_bound)
+		  :
+		  );
+  }
+  else{
+    asm volatile ("bndr %[rd], zero, zero"
+		  : [rd]"+r" (ret_ptr)
+		  : 
+		  :
+		  );
+  }
+#else
+  if(ret_ptr != NULL){  
+    printf("kenny warning: getenv\n");
     __softboundcets_store_return_metadata(ret_ptr, 
                                           ret_ptr + strlen(ret_ptr) + 1, 
                                           1, __softboundcets_global_lock);
-  }
-  else {
-    __softboundcets_store_null_return_metadata();
-  }
-
+    
+					  }
+    else {
+      __softboundcets_store_null_return_metadata();
+    }
+#endif
+    
   return ret_ptr;
 }
 
@@ -1951,7 +2083,7 @@ __WEAK_INLINE int softboundcets_atexit(void_func_ptr function){
 #ifdef _GNU_SOURCE
 __WEAK_INLINE char* softboundcets_strerror_r(int errnum, char* buf, 
                                              size_t buf_len) {
-
+  printf("kenny warning: strerror_r\n");
   void* ret_ptr = strerror_r(errnum, buf, buf_len);
   __softboundcets_store_return_metadata(ret_ptr, 
                                         (void*)
@@ -1962,7 +2094,7 @@ __WEAK_INLINE char* softboundcets_strerror_r(int errnum, char* buf,
 #endif
 
 __WEAK_INLINE char* softboundcets_strerror(int errnum) {
-
+  printf("kenny warning: strerror\n");
   void* ret_ptr = strerror(errnum);
   __softboundcets_store_return_metadata(ret_ptr, 
                                         (void*)
@@ -2020,7 +2152,7 @@ softboundcets_select(int nfds, fd_set* readfds, fd_set* writefds,
 
 __WEAK_INLINE char* 
 softboundcets_setlocale(int category, const char* locale){
-  
+  printf("kenny warning: setlocale\n");
   void* ret_ptr = setlocale(category, locale);
   __softboundcets_store_return_metadata(ret_ptr, 
                                         (void*) 
@@ -2032,7 +2164,7 @@ softboundcets_setlocale(int category, const char* locale){
 
 __WEAK_INLINE char*
 softboundcets_textdomain(const char* domainname){
-  
+  printf("kenny warning: textdomain\n");
   void* ret_ptr = textdomain(domainname);
   __softboundcets_store_return_metadata(ret_ptr,
                                         (void *)
@@ -2046,7 +2178,7 @@ softboundcets_textdomain(const char* domainname){
 
 __WEAK_INLINE char*
 softboundcets_bindtextdomain(const char* domainname, const char* dirname){
-  
+  printf("kenny warning: bindtextdomain\n");
   void* ret_ptr = bindtextdomain(domainname, dirname);
   __softboundcets_store_return_metadata(ret_ptr,
                                         (void *)
@@ -2059,7 +2191,7 @@ softboundcets_bindtextdomain(const char* domainname, const char* dirname){
 
 __WEAK_INLINE char * 
 softboundcets_gettext(const char * msgid){
-  
+  printf("kenny warning: gettext\n");
   void* ret_ptr = gettext(msgid);
   __softboundcets_store_return_metadata(ret_ptr,
                                         (void*)
@@ -2075,7 +2207,7 @@ __WEAK_INLINE char *
 softboundcets_dcngettext (const char * domainname,
                           const char * msgid, const char * msgid_plural,
                           unsigned long int n, int category){
-  
+  printf("kenny warning: dcngettext\n");
   void* ret_ptr = dcngettext(domainname, msgid, msgid_plural, n, category);
   __softboundcets_store_return_metadata(ret_ptr,
                                         (void*)
@@ -2109,7 +2241,7 @@ __WEAK_INLINE char*
 softboundcets_dcgettext (const char * domainname, 
                          const char * msgid,
                          int category) {
-
+  printf("kenny warning: dcgettext\n");
   void* ret_ptr = dcgettext(domainname, msgid, category);
   __softboundcets_store_return_metadata(ret_ptr,
                                         (void*)
@@ -2124,6 +2256,7 @@ softboundcets_dcgettext (const char * domainname,
 
 #if defined(__linux__)
 __WEAK_INLINE int* softboundcets___errno_location() {
+  printf("kenny warning: __errno_location\n");
   void* ret_ptr = (int *)__errno_location();
   //  printf("ERRNO: ptr is %lx", ptrs->ptr);
   __softboundcets_store_return_metadata(ret_ptr, 
@@ -2137,31 +2270,63 @@ __WEAK_INLINE unsigned short const**
 softboundcets___ctype_b_loc(void) {
 
   unsigned short const** ret_ptr =__ctype_b_loc();
-  __softboundcets_store_return_metadata((void*) ret_ptr, 
-                                        (void*)
-                                        ((char*) ret_ptr + 1024*1024), 
-                                        1, __softboundcets_global_lock);
+#ifdef __HW_SECURITY
+  void* base = (void*) ret_ptr;
+  void* bound = (void*) ((char*) ret_ptr + 1024*1024);
+  asm volatile ("bndr %[rd], %[rs1], %[rs2]"
+		: [rd]"=r"(ret_ptr)
+		: [rs1]"r" (base), [rs2]"r" (bound)
+		:
+		); 
+#else
+  __softboundcets_store_return_metadata((void*) ret_ptr,
+					(void*) ((char*) ret_ptr + 1024*1024), 
+                                        1,
+					__softboundcets_global_lock);
+#endif //end of __HW_SECURITY
   return ret_ptr;
 }
 
 __WEAK_INLINE int const**  softboundcets___ctype_toupper_loc(void) {
-  
-  int const ** ret_ptr  =  __ctype_toupper_loc();  
+
+  int const ** ret_ptr  =  __ctype_toupper_loc();
+
+#ifdef __HW_SECURITY
+  void*  ret_bound = (void*) ((char*)ret_ptr + 1024*1024);
+  asm volatile ("bndr %[rd], %[rs1], %[rs2]"
+		: [rd]"+r" (ret_ptr)
+		: [rs1]"r" (ret_ptr), [rs2]"r" (ret_bound)
+		:
+		);
+#else  
+  printf("kenny warning: __ctype_toupper_loc\n");
   __softboundcets_store_return_metadata((void*) ret_ptr, 
-                                        (void*)
-                                        ((char*)ret_ptr + 1024*1024), 
+                                        (void*) ((char*)ret_ptr + 1024*1024), 
                                         1, __softboundcets_global_lock);
+#endif
   return ret_ptr;
 
 }
 
 
 __WEAK_INLINE int const**  softboundcets___ctype_tolower_loc(void) {
-  
-  int const ** ret_ptr  =  __ctype_tolower_loc();  
+
+  int const ** ret_ptr  =  __ctype_tolower_loc();
+
+#ifdef __HW_SECURITY
+  void*  ret_bound = (void*) ((char*)ret_ptr + 1024*1024);
+  asm volatile ("bndr %[rd], %[rs1], %[rs2]"
+		: [rd]"+r" (ret_ptr)
+		: [rs1]"r" (ret_ptr), [rs2]"r" (ret_bound)
+		:
+		);
+#else
+  printf("kenny warning: __ctype_tolower_loc\n");
   __softboundcets_store_return_metadata((void*) ret_ptr, 
                                         (void*) ((char*)ret_ptr + 1024*1024),
                                         1, __softboundcets_global_lock);
+#endif
+  
   return ret_ptr;
 
 }
@@ -2312,6 +2477,7 @@ void softboundcets_obstack_free(struct obstack *obj, void *object){
 
 __WEAK_INLINE 
 char * softboundcets_nl_langinfo(nl_item item){
+  printf("kenny warning: nl_langinfo\n");
   
   char* ret_ptr = nl_langinfo(item);
 

@@ -239,9 +239,10 @@ static void softboundcets_init_ctype(){
                                  __softboundcets_global_lock);
   
 #endif
-
-#endif // __linux ends 
+  
 #endif // end of __HW_SECURITY
+#endif // __linux ends 
+
   
 }
 
@@ -269,8 +270,8 @@ int main(int argc, char **argv){
 
   
   int i;
-  size_t argv_key;
-  void* argv_loc;
+  //size_t argv_key;
+  //void* argv_loc;
 
   /*
   int* temp = malloc(1);
@@ -286,27 +287,30 @@ int main(int argc, char **argv){
 
   for(i = 0; i < argc; i++) { 
 
-#ifdef __SOFTBOUNDCETS_SPATIAL
-    /* replaced by hardware shadow space
-    __softboundcets_metadata_store(&new_argv[i], 
-                                   new_argv[i], 
-                                   new_argv[i] + strlen(new_argv[i]) + 1);
-    */
+
 #ifdef __HW_SECURITY
-    
-    //kenny handle the base/bound for all main's argv argc
-    
+    printf("argv HW init\n");
+    //kenny handle the base/bound for all main's argv
     void* k_container = &new_argv[i];
     void* k_base = new_argv[i];
     void* k_bound = new_argv[i] + strlen(new_argv[i]) + 1;
-  
+    //printf("k_c %p \tk_bas %p \tk_bnd %p\n", k_container, k_base, k_bound);
+    
     asm volatile("bndr %[container], %[base], %[bound]\n\tsbdl %[container], 0(%[container])\n\tsbdu %[container], 0(%[container])"
-		 : [container]"=r" (k_container)
+		 : [container]"+r" (k_container)
 		 : [base]"r" (k_base), [bound]"r" (k_bound)
 		 :
 		 );
-    
+
 #endif //end __HW_SECURITY
+    
+#ifdef __SOFTBOUNDCETS_SPATIAL
+    /* replaced by hardware shadow space
+       __softboundcets_metadata_store(&new_argv[i], 
+       new_argv[i], 
+       new_argv[i] + strlen(new_argv[i]) + 1);
+    */
+    
     
 #elif __SOFTBOUNDCETS_TEMPORAL
     //    printf("performing metadata store\n");
@@ -331,7 +335,7 @@ int main(int argc, char **argv){
 
   }
 
-  //  printf("before init_ctype\n");
+  printf("before init_ctype\n");
   softboundcets_init_ctype();
 
   /* Santosh: Real Nasty hack because C programmers assume argv[argc]
@@ -343,9 +347,9 @@ int main(int argc, char **argv){
   /* &new_argv[0], temp_ptr, argv_key, argv_loc * the metadata */
 
 
-
 #ifdef __HW_SECURITY
-
+  //printf("shadow register setup for argv metadata\n");
+  
   //kenny handle the base/bound shadow stack setup for main func using hardware
   asm volatile ("bndr %[rd], %[rs1], %[rs2]"
 		: [rd]"+r" (new_argv)
@@ -384,7 +388,7 @@ int main(int argc, char **argv){
 #endif
 #endif //endif __HW_SECURITY
   
-  //  printf("before calling program main\n");
+  //printf("before calling program main\n");
   return_value = softboundcets_pseudo_main(argc, new_argv);
   //__softboundcets_deallocate_shadow_stack_space();
 

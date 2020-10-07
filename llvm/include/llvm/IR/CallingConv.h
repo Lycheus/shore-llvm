@@ -20,7 +20,7 @@ namespace llvm {
 /// the well-known calling conventions.
 ///
 namespace CallingConv {
-
+  
   /// LLVM IR allows to use arbitrary numbers as calling convention identifiers.
   using ID = unsigned;
 

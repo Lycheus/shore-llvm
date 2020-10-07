@@ -131,6 +131,28 @@ void RISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
       .addReg(SrcReg, getKillRegState(IsKill))
       .addFrameIndex(FI)
       .addImm(0);
+
+
+
+  /*
+  char* shadow_CSR_flag = getenv("k_shadow_CSR"); //this env var is enabled if -fsoftboundcets is used
+  if(shadow_CSR_flag != 0){
+    // Only handle reg t0-t2, s0-s11, detail please check RISCVRegisterInfo.td
+    //if ((SrcReg >= 6 && SrcReg <= 10) || (SrcReg >= 19 && SrcReg <=  32)){
+
+    if ((SrcReg >= 6 && SrcReg <=  32)){ //include a0-a7 registers
+      BuildMI(MBB, I, DL, get(RISCV::SBDL))
+	.addReg(SrcReg, getKillRegState(IsKill))
+	.addFrameIndex(FI)
+	.addImm(0);
+      BuildMI(MBB, I, DL, get(RISCV::SBDU))
+	.addReg(SrcReg, getKillRegState(IsKill))
+	.addFrameIndex(FI)
+	.addImm(0);
+    }
+  }
+  */
+  
 }
 
 void RISCVInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
@@ -154,6 +176,59 @@ void RISCVInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
     llvm_unreachable("Can't load this register from stack slot");
 
   BuildMI(MBB, I, DL, get(Opcode), DstReg).addFrameIndex(FI).addImm(0);
+
+  /*
+  char* shadow_CSR_flag = getenv("k_shadow_CSR");  //this env var is enabled if -fsoftboundcets is used
+  if(shadow_CSR_flag != 0){
+    //Only handle reg t0-t2, s0-s11, detail please check RISCVRegisterInfo.td
+    //if ((DstReg >= 6 && DstReg <= 10) || (DstReg >= 19 && DstReg <=  32)){
+    if ((DstReg >= 6 && DstReg <=  32)){ //include a0-a7 registers
+      BuildMI(MBB, I, DL, get(RISCV::LBDL), DstReg).addFrameIndex(FI).addImm(0);
+      BuildMI(MBB, I, DL, get(RISCV::LBDU), DstReg).addFrameIndex(FI).addImm(0);
+    }
+  } 
+  */
+}
+
+// kenny modified to store the shadow register into shadow memory when CalleeSavedRegisters(CSR).
+// this is part of the handling insert callee saved registers
+// by implement the shadow memory store here and use this function inside PrologEpilogInserter can target only the Callee Saved Register for call convention
+void RISCVInstrInfo::storeSRegToStackSlot(MachineBasicBlock &MBB,
+                                         MachineBasicBlock::iterator I,
+                                         unsigned SrcReg, bool IsKill, int FI,
+                                         const TargetRegisterClass *RC,
+                                         const TargetRegisterInfo *TRI) const {
+  DebugLoc DL;
+  if (I != MBB.end())
+    DL = I->getDebugLoc();
+
+  // store to the shadow memory
+  BuildMI(MBB, I, DL, get(RISCV::SBDL))
+    .addReg(SrcReg, getKillRegState(IsKill))
+    .addFrameIndex(FI)
+    .addImm(0);
+  BuildMI(MBB, I, DL, get(RISCV::SBDU))
+    .addReg(SrcReg, getKillRegState(IsKill))
+    .addFrameIndex(FI)
+    .addImm(0);
+}
+
+// kenny modified to load (restore) the shadow register from shadow memory
+// this is part of the handling insert callee saved registers
+// by implement the shadow memory load here and use this function inside PrologEpilogInserter can target only the Callee Saved Register for call convention
+void RISCVInstrInfo::loadSRegFromStackSlot(MachineBasicBlock &MBB,
+                                          MachineBasicBlock::iterator I,
+                                          unsigned DstReg, int FI,
+                                          const TargetRegisterClass *RC,
+                                          const TargetRegisterInfo *TRI) const {
+  DebugLoc DL;
+  if (I != MBB.end())
+    DL = I->getDebugLoc();
+
+  //load from shadow memory
+  BuildMI(MBB, I, DL, get(RISCV::LBDL), DstReg).addFrameIndex(FI).addImm(0);
+  BuildMI(MBB, I, DL, get(RISCV::LBDU), DstReg).addFrameIndex(FI).addImm(0);
+
 }
 
 void RISCVInstrInfo::movImm32(MachineBasicBlock &MBB,

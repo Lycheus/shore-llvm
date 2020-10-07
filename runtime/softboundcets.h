@@ -652,9 +652,6 @@ __WEAK_INLINE void __softboundcets_introspect_metadata(void* ptr,
 __METADATA_INLINE 
 void __softboundcets_copy_metadata(void* dest, void* from, 
 				   size_t size){
-
-  
-
   //BEGIN
 #ifdef __FUNC_CYCLE
   //kenny record the cycle count
@@ -695,14 +692,14 @@ void __softboundcets_copy_metadata(void* dest, void* from,
   if(((size_t)from) % 8 != 0){
     if (aligned_flag == 0){
       printf("memcpy from_ptr not aligned\n");
-      aligned_flag = 1;
+      //aligned_flag = 1;
     }
     return;
   }
   if(((size_t)dest) % 8 != 0){
     if (aligned_flag == 0){
     printf("memcpy dest_ptr not aligned\n");
-      aligned_flag = 1;
+    //aligned_flag = 1;
     }
     return;
   }  
@@ -969,7 +966,8 @@ __softboundcets_memcopy_check(void* dest, void* src, size_t size,
   unsigned long rdcycle_start, rdcycle_end;
   asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
 #endif
-  
+
+  //printf("dest=%x, dest_base=%x, dest_bound=%x\nsrc=%x, src_base=%x, src_bound=%x\n",dest,dest_base,dest_bound,src,src_base,src_bound);
   if(size >= LONG_MAX)
     {
       printf("kenny test for memcpy violation 1, copy size too large\n");
