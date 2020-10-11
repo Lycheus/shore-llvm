@@ -473,12 +473,7 @@ static void insertCSRSaves(MachineBasicBlock &SaveBlock,
       const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg);
       TII.storeRegToStackSlot(SaveBlock, I, Reg, true, CS.getFrameIdx(), RC, TRI);
 
-      /*
-      //t0-t2, s0-s11, please check RISCVRegisterInfo.td for detail
-      if ((Reg >= 6 && Reg <= 10) || (Reg >= 19 && Reg <=  32)){ 
-	  TII.storeSRegToStackSlot(SaveBlock, I, Reg, true, CS.getFrameIdx(), RC, TRI); //kenny added for shadow memory
-      }
-      */
+      TII.storeSRegToStackSlot(SaveBlock, I, Reg, true, CS.getFrameIdx(), RC, TRI); //kenny added for shadow memory
       
     }
   }
@@ -502,12 +497,7 @@ static void insertCSRRestores(MachineBasicBlock &RestoreBlock,
       const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg);
       TII.loadRegFromStackSlot(RestoreBlock, I, Reg, CI.getFrameIdx(), RC, TRI);
 
-      /*
-      //t0-t2, s0-s11, please check RISCVRegisterInfo.td for detail
-      if ((Reg >= 6 && Reg <= 10) || (Reg >= 19 && Reg <=  32)){ 
-	TII.loadSRegFromStackSlot(RestoreBlock, I, Reg, CI.getFrameIdx(), RC, TRI);  //kenny added for shadow memory
-      }
-      */
+      TII.loadSRegFromStackSlot(RestoreBlock, I, Reg, CI.getFrameIdx(), RC, TRI);  //kenny added for shadow memory
       
       assert(I != RestoreBlock.begin() &&
              "loadRegFromStackSlot didn't insert any code!");

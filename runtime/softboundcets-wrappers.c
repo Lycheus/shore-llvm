@@ -240,7 +240,7 @@ __softboundcets_propagate_metadata_shadow_stack_from(int from_argnum,
 __WEAK_INLINE void __softboundcets_store_null_return_metadata(){
 
 #ifdef __HW_SECURITY
-  printf("kenny warning: store_null_return not working because after the return the result is immediatly covered by mv a0, a1\n");
+  printf("kenny warning: store_null_return shall not be used\n");
   /*
   register int *reg_a0 asm ("a0");
   asm volatile ("bndr %[rd], zero, zero"
@@ -284,7 +284,7 @@ __softboundcets_store_return_metadata(void* base, void* bound, size_t key,
                                       void* lock){
 
 #ifdef __HW_SECURITY
-  printf("kenny warning: store_return_metadata not working because after the return the result is immediatly covered by mv a0, a1\n");
+  printf("kenny warning: store_return_metadata shall not be used\n");
   /*
   register int *reg_a0 asm ("a0");
   asm volatile ("bndr %[rd], %[rs1], %[rs2]"
@@ -701,7 +701,7 @@ __WEAK_INLINE DIR* softboundcets_fdopendir(int fd){
   printf("kenny warning: fdopendir\n");
   void* ret_ptr = (void*) fdopendir(fd);
   void* ret_ptr_bound = (char *) ret_ptr + 1024 * 1024;
-    __softboundcets_store_return_metadata(ret_ptr, ret_ptr_bound, 
+  __softboundcets_store_return_metadata(ret_ptr, ret_ptr_bound, 
                                         1, (void*) __softboundcets_global_lock);
   return (DIR*)ret_ptr;
   
@@ -713,7 +713,7 @@ __WEAK_INLINE int softboundcets_fseeko(FILE *stream, off_t offset, int whence){
 }
 
 __WEAK_INLINE  char * softboundcets_mkdtemp(char *template){
-  
+  printf("kenny warning: mkdtemp\n");
   char* ret_ptr = mkdtemp(template);
   __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
   return ret_ptr;
@@ -798,16 +798,19 @@ __WEAK_INLINE void *
 softboundcets_bsearch(const void *key, const void *base,
                       size_t nmemb, size_t size,
                       int (*compar)(const void *, const void *)){
-  
+  printf("kenny warning: bsearch\n");
   void* ret_ptr = bsearch(key, base, nmemb, size, compar);
 
   __softboundcets_propagate_metadata_shadow_stack_from(2, 0);
     return ret_ptr;
 
 }
-/* kenny disable function wrapper that dont suport static linking for qemu-riscv simulator
+
+/* kenny disable function wrapper that dont suport static linking for qemu-riscv simulator */
+/*
 __WEAK_INLINE 
 struct group *softboundcets_getgrnam(const char *name){
+  printf("kenny warning: getgrnam\n");
   void* ret_ptr = getgrnam(name);
   __softboundcets_store_return_metadata(ret_ptr, (char*) ret_ptr + 1024 * 1024, 
                                         1, (void*) __softboundcets_global_lock);
@@ -815,6 +818,7 @@ struct group *softboundcets_getgrnam(const char *name){
   return ret_ptr;  
 }
 */
+
 __WEAK_INLINE
 int softboundcets_rpmatch(const char *response){
   return rpmatch(response);
@@ -858,9 +862,11 @@ iconv_t softboundcets_iconv_open(const char *tocode, const char *fromcode){
 
 
 
-/* kenny disable function wrapper that dont suport static linking for qemu-riscv simulator
+/* kenny disable function wrapper that dont suport static linking for qemu-riscv simulator */
+/*
 __WEAK_INLINE 
 struct passwd * softboundcets_getpwnam(const char *name){
+  printf("kenny warning: getpwnam\n");
   void* ret_ptr = getpwnam(name);
   __softboundcets_store_return_metadata(ret_ptr, (char*) ret_ptr + 1024 * 1024, 
                                         1, (void*) __softboundcets_global_lock);
@@ -868,8 +874,11 @@ struct passwd * softboundcets_getpwnam(const char *name){
   return ret_ptr;  
 }
 */
-/* kenny disable function wrapper that dont suport static linking for qemu-riscv simulator
+
+/* kenny disable function wrapper that dont suport static linking for qemu-riscv simulator */
+/*
 __WEAK_INLINE struct passwd *softboundcets_getpwuid(uid_t uid){
+  printf("kenny warning: getpwuid\n");
   void* ret_ptr= getpwuid(uid);
 
   __softboundcets_store_return_metadata(ret_ptr, (char*) ret_ptr + 1024 * 1024, 
@@ -878,9 +887,11 @@ __WEAK_INLINE struct passwd *softboundcets_getpwuid(uid_t uid){
   return ret_ptr;  
 }
 */
-/* kenny disable function wrapper that dont suport static linking for qemu-riscv simulator
+
+/* kenny disable function wrapper that dont suport static linking for qemu-riscv simulator */
+/*
 __WEAK_INLINE struct group *softboundcets_getgrgid(gid_t gid){
-  
+  printf("kenny warning: getgrgid\n");
   void* ret_ptr = getgrgid(gid);
   __softboundcets_store_return_metadata(ret_ptr, (char*) ret_ptr + 1024 * 1024, 
                                         1, (void*) __softboundcets_global_lock);
@@ -1022,6 +1033,8 @@ __WEAK_INLINE unsigned int softboundcets_sleep(unsigned int seconds) {
 
 __WEAK_INLINE char* softboundcets_getcwd(char* buf, size_t size){ 
 
+  printf("kenny warning: getcwd\n");
+  
   if(buf == NULL) {
     printf("This case not handled, requesting memory from system\n");
     __softboundcets_abort();
@@ -1222,6 +1235,7 @@ __WEAK_INLINE size_t softboundcets_strlen(const char* s){
 
 __WEAK_INLINE char* softboundcets_strpbrk(const char* s, const char* accept){ 
 
+  printf("kenny warning: strpbrk\n");
   char* ret_ptr = strpbrk(s, accept);
   if(ret_ptr != NULL) {
 
@@ -1252,7 +1266,7 @@ __WEAK_INLINE char* softboundcets_gets(char* s){
 }
 
 __WEAK_INLINE char* softboundcets_fgets(char* s, int size, FILE* stream){
-
+  printf("kenny warning: fgets\n");
   char* ret_ptr = fgets(s, size, stream);
   __softboundcets_propagate_metadata_shadow_stack_from(1,0);
 
@@ -1277,7 +1291,7 @@ __WEAK_INLINE size_t softboundcets_strcspn(const char* s, const char* reject){
 #ifdef _GNU_SOURCE
 
 __WEAK_INLINE void* softboundcets_mempcpy(void * dest, const void * src, size_t n){
-
+  printf("kenny warning: mempcpy\n");
   // IMP: need to copy the metadata 
   void* ret_ptr = mempcpy(dest, src, n);
   __softboundcets_propagate_metadata_shadow_stack_from(1,0);
@@ -1293,7 +1307,8 @@ softboundcets_memcmp(const void* s1, const void* s2, size_t n){
 
 #ifdef _GNU_SOURCE
 
-__WEAK_INLINE void* softboundcets_memrchr(const void * s, int c, size_t n){  
+__WEAK_INLINE void* softboundcets_memrchr(const void * s, int c, size_t n){
+  printf("kenny warning: memrchr\n");
   void* ret_ptr = memrchr(s, c, n);
   if(ret_ptr != NULL) {
     __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
@@ -1311,7 +1326,8 @@ __WEAK_INLINE void softboundcets_rewinddir(DIR *dirp){
 
 
 
-__WEAK_INLINE void* softboundcets_memchr(const void * s, int c, size_t n){  
+__WEAK_INLINE void* softboundcets_memchr(const void * s, int c, size_t n){
+  printf("kenny warning: memchr\n");
   void* ret_ptr = memchr(s, c, n);
   if(ret_ptr != NULL) {
     __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
@@ -1323,7 +1339,7 @@ __WEAK_INLINE void* softboundcets_memchr(const void * s, int c, size_t n){
 }
 
 __WEAK_INLINE char* softboundcets_rindex(char* s, int c){
-
+  printf("kenny warning: rindex\n");
   char* ret_ptr = rindex(s,c);
   __softboundcets_propagate_metadata_shadow_stack_from(1,0);
   return ret_ptr;
@@ -1331,14 +1347,15 @@ __WEAK_INLINE char* softboundcets_rindex(char* s, int c){
 
 __WEAK_INLINE ssize_t 
 softboundcets___getdelim(char **lineptr, size_t *n, int delim, FILE *stream){
-  
+  printf("kenny warning: getdelim\n");
+
   int metadata_prop = 1;
   if(*lineptr == NULL){
     metadata_prop = 0;
   }
 
   ssize_t ret_val = getdelim(lineptr, n, delim, stream);
-  printf("kenny warning: getdelim\n");
+
   if(metadata_prop){
     __softboundcets_read_shadow_stack_metadata_store(lineptr, 1);
   }
@@ -1356,7 +1373,7 @@ softboundcets___getdelim(char **lineptr, size_t *n, int delim, FILE *stream){
 
 __WEAK_INLINE unsigned long int 
 softboundcets_strtoul(const char* nptr, char ** endptr, int base){
-
+  printf("kenny warning: strtoul\n");
   unsigned long temp = strtoul(nptr, endptr, base);
   if(endptr != NULL){
     __softboundcets_read_shadow_stack_metadata_store(endptr, 1);
@@ -1367,7 +1384,7 @@ softboundcets_strtoul(const char* nptr, char ** endptr, int base){
 }
 
 __WEAK_INLINE double softboundcets_strtod(const char* nptr, char** endptr){
-
+  printf("kenny warning: strtod\n");
   double temp = strtod(nptr, endptr);
   
   if(endptr != NULL) {
@@ -1378,7 +1395,7 @@ __WEAK_INLINE double softboundcets_strtod(const char* nptr, char** endptr){
  
 __WEAK_INLINE long 
 softboundcets_strtol(const char* nptr, char **endptr, int base){
- 
+   printf("kenny warning: strtol\n");
    long temp = strtol(nptr, endptr, base);
    if(endptr != NULL) {
      //    __softboundcets_printf("*endptr=%p\n", *endptr);
@@ -1390,7 +1407,7 @@ softboundcets_strtol(const char* nptr, char **endptr, int base){
 #ifdef _GNU_SOURCE
 
 __WEAK_INLINE char* softboundcets_strchrnul(const char* s, int c){
-
+  printf("kenny warning: strchrnul\n");
   char* ret_ptr = strchrnul(s, c);
    __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
    return ret_ptr;
@@ -1398,21 +1415,21 @@ __WEAK_INLINE char* softboundcets_strchrnul(const char* s, int c){
 #endif
 
 __WEAK_INLINE char* softboundcets_strchr(const char* s, int c){
-
+  printf("kenny warning: strchr\n");
   char* ret_ptr = strchr(s, c);
    __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
    return ret_ptr;
 }
 
 __WEAK_INLINE char* softboundcets_strrchr(const char* s, int c){
-
+  printf("kenny warning: strrchr\n");
   char* ret_ptr = strrchr(s, c);
   __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
   return ret_ptr;
 }
 
 __WEAK_INLINE char* softboundcets_stpcpy(char* dest, char* src){
-
+  printf("kenny warning: stpcpy\n");
   void* ret_ptr = stpcpy(dest, src);
   __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
   return ret_ptr;
@@ -1489,9 +1506,20 @@ __WEAK_INLINE char* softboundcets_strcpy(char* dest, char* src){
   // hardware replacement of  __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
   // metadata from source shadow register shall be copy to dest shadow register
 
+  /* This is for lbdl that is loading from shadow memroy to shadow register
   asm volatile("lbdl %[ret], 0(%[container])\n\tlbdu %[ret], 0(%[container])"
 	       : [ret]"=r" (ret_ptr)
 	       : [container]"r" (&container)
+	       :
+	       );
+  */
+
+  //new update for lbdl that is loading from shadow memory to normal register
+  char* k_base = "a"; //just use a place holder, if it is void* null then compiler will not allocate a register for it.
+  char* k_bound = "b";
+  asm volatile("lbdl %[base], 0(%[container])\n\tlbdu %[bound], 0(%[container])\n\tbndr %[ret], %[base], %[bound]"
+	       : [ret]"+r" (ret_ptr)
+	       : [container]"r" (&container), [base]"r" (k_base), [bound]"r" (k_bound)
 	       :
 	       );
 
@@ -1532,9 +1560,8 @@ __WEAK_INLINE void softboundcets_exit(int status) {
 }
 
 __WEAK_INLINE char*  softboundcets_strtok(char* str, const char* delim){
-  
+  printf("kenny warning: strtok\n");  
   char* ret_ptr = strtok(str, delim);
-  printf("kenny warning: strtok\n");
   __softboundcets_store_return_metadata((void*)0, (void*)(281474976710656), 
                                         1, __softboundcets_global_lock);
   return ret_ptr;
@@ -1562,7 +1589,8 @@ __WEAK_INLINE void __softboundcets_strdup_handler(void* ret_ptr){
 
 //strdup, allocates memory from the system using malloc, thus can be freed
 __WEAK_INLINE char* softboundcets_strndup(const char* s, size_t n){
-  
+
+  printf("kenny warning: strndup\n");
   /* IMP: strndup just copies the string s */  
   char* ret_ptr = strndup(s, n);
   __softboundcets_strdup_handler(ret_ptr);  
@@ -1572,7 +1600,8 @@ __WEAK_INLINE char* softboundcets_strndup(const char* s, size_t n){
 
 //strdup, allocates memory from the system using malloc, thus can be freed
 __WEAK_INLINE char* softboundcets_strdup(const char* s){
-  
+
+  printf("kenny warning: strdup\n");
   /* IMP: strdup just copies the string s */  
   void* ret_ptr = strdup(s);
   
@@ -1582,6 +1611,7 @@ __WEAK_INLINE char* softboundcets_strdup(const char* s){
 
 __WEAK_INLINE char* softboundcets___strdup(const char* s){
 
+  printf("kenny warning: __strdup\n");
   void* ret_ptr = strdup(s);
   __softboundcets_strdup_handler(ret_ptr);
   return ret_ptr;
@@ -1598,7 +1628,7 @@ __WEAK_INLINE char* softboundcets___strdup(const char* s){
     __softboundcets_abort();
   } 
 #endif
-  
+  printf("kenny warning: __strcat\n");
   char* ret_ptr = strcat(dest, src);
   __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
   return ret_ptr;
@@ -1606,7 +1636,7 @@ __WEAK_INLINE char* softboundcets___strdup(const char* s){
 
 __WEAK_INLINE char* 
 softboundcets_strncat (char* dest,const char* src, size_t n){
-
+  printf("kenny warning: strncat\n");
   char* ret_ptr = strncat(dest, src, n);
   __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
   return ret_ptr;
@@ -1674,10 +1704,20 @@ softboundcets_strncpy(char* dest, char* src, size_t n){
   
   // hardware replacement of  __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
   // metadata from source shadow register shall be copy to dest shadow register
-
+  /*
   asm volatile("lbdl %[ret], 0(%[container])\n\tlbdu %[ret], 0(%[container])"
 	       : [ret]"=r" (ret_ptr)
 	       : [container]"r" (&container)
+	       :
+	       );
+  */
+  
+  //new update for lbdl that is loading from shadow memory to normal register
+  char* k_base = "a"; //just use a place holder, if it is void* null then compiler will not allocate a register for it.
+  char* k_bound = "b";
+  asm volatile("lbdl %[base], 0(%[container])\n\tlbdu %[bound], 0(%[container])\n\tbndr %[ret], %[base], %[bound]"
+	       : [ret]"+r" (ret_ptr)
+	       : [container]"r" (&container), [base]"r" (k_base), [bound]"r" (k_bound)
 	       :
 	       );
 
@@ -1690,7 +1730,7 @@ softboundcets_strncpy(char* dest, char* src, size_t n){
 
 __WEAK_INLINE char* 
 softboundcets_strstr(const char* haystack, const char* needle){
-  
+  printf("kenny warning: strstr\n");
   char* ret_ptr = strstr(haystack, needle);
   if(ret_ptr != NULL) {    
     __softboundcets_propagate_metadata_shadow_stack_from(1, 0);
@@ -2274,7 +2314,7 @@ softboundcets___ctype_b_loc(void) {
   void* base = (void*) ret_ptr;
   void* bound = (void*) ((char*) ret_ptr + 1024*1024);
   asm volatile ("bndr %[rd], %[rs1], %[rs2]"
-		: [rd]"=r"(ret_ptr)
+		: [rd]"+r"(ret_ptr)
 		: [rs1]"r" (base), [rs2]"r" (bound)
 		:
 		); 
@@ -2350,6 +2390,7 @@ static void
 exchange_elements_helper(void* base, size_t element_size, 
                          int idx1, int idx2){
 
+  printf("kenny warning: _elements_helper\n");
   char* base_bytes = base;
   size_t i;
 

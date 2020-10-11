@@ -709,7 +709,7 @@ void __softboundcets_copy_metadata(void* dest, void* from,
       void* base;
       void* bound;
       asm volatile("lbdl %[base], 0(%[from])\n\tlbdu %[bound], 0(%[from])\n\tbndr %[dest], %[base], %[bound]\n\tsbdl %[dest], 0(%[dest])\n\tsbdu %[dest], 0(%[dest])"
-		   : [base]"=r" (base), [bound]"=r" (bound)
+		   : [base]"+r" (base), [bound]"+r" (bound)
 		   : [dest]"r" (dest), [from]"r" (from) 
 		   :
 		   );
@@ -1870,6 +1870,8 @@ __WEAK_INLINE void __softboundcets_check_remove_from_free_map(size_t ptr_key, vo
    __softboundcets_metadata_load((void*) addr, base, bound);   
    //__softboundcets_metadata_load((void*) addr, base, bound, key, lock);
    */
+
+   printf("kenny error: metadata_load_vector are used\n");
  }
 
  __METADATA_INLINE void __softboundcets_metadata_store_vector(void* addr_of_ptr, 
@@ -1887,6 +1889,7 @@ __WEAK_INLINE void __softboundcets_check_remove_from_free_map(size_t ptr_key, vo
    __softboundcets_metadata_store((void*)addr, base, bound);
    //__softboundcets_metadata_store((void*)addr, base, bound, key, lock);
    */
+   printf("kenny error: metadata_store_vector are used\n");
  }
 
 

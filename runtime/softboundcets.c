@@ -204,6 +204,7 @@ static void softboundcets_init_ctype(){
 
   ptr = (void*) __ctype_b_loc();
   base_ptr = (void*) (*(__ctype_b_loc()));
+  printf("init_ctype: __ctype_b_loc() = %x\n", __ctype_b_loc());
 
 #ifdef __HW_SECURITY
   //implenent the ctype initialization in hardware
@@ -211,11 +212,10 @@ static void softboundcets_init_ctype(){
   void* k_bound = (char*) base_ptr + 256;
   
   asm volatile("bndr %[container], %[base], %[bound]\n\tsbdl %[container], 0(%[container])\n\tsbdu %[container], 0(%[container])"
-	       : [container]"=r" (ptr)
+	       : [container]"+r" (ptr)
 	       : [base]"r" (k_base), [bound]"r" (k_bound)
 	       :
 	       );
-  
   
 #else
   __softboundcets_allocation_secondary_trie_allocate(base_ptr);
