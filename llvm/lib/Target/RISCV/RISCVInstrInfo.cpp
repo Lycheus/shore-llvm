@@ -131,13 +131,12 @@ void RISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
       .addReg(SrcReg, getKillRegState(IsKill))
       .addFrameIndex(FI)
       .addImm(0);
-
   /*
-  char* shadow_CSR_flag = getenv("k_shadow_CSR"); //this env var is enabled if -fsoftboundcets is used
+  //char* shadow_CSR_flag = getenv("k_shadow_CSR"); //this env var is enabled if -fsoftboundcets is used
   //if(shadow_CSR_flag != 0){
     // Only handle reg t0-t2, s0-s11, detail please check RISCVRegisterInfo.td
-    if ((SrcReg >= 6 && SrcReg <= 10) || (SrcReg >= 19 && SrcReg <=  32)){
-    //if ((SrcReg >= 6 && SrcReg <=  32)){ //include a0-a7 registers
+    //if ((SrcReg >= 6 && SrcReg <= 10) || (SrcReg >= 19 && SrcReg <=  32)){
+    if ((SrcReg >= 6 && SrcReg <=  32)){ //include a0-a7 registers
       BuildMI(MBB, I, DL, get(RISCV::SBDL))
 	.addReg(SrcReg, getKillRegState(IsKill))
 	.addFrameIndex(FI)
@@ -148,7 +147,7 @@ void RISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
 	.addImm(0);
     }
     //}
-  */
+    */
 }
 
 void RISCVInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
@@ -172,20 +171,18 @@ void RISCVInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
     llvm_unreachable("Can't load this register from stack slot");
 
   BuildMI(MBB, I, DL, get(Opcode), DstReg).addFrameIndex(FI).addImm(0);
-
   /*
-  char* shadow_CSR_flag = getenv("k_shadow_CSR");  //this env var is enabled if -fsoftboundcets is used
+  //char* shadow_CSR_flag = getenv("k_shadow_CSR");  //this env var is enabled if -fsoftboundcets is used
   //if(shadow_CSR_flag != 0){
     //Only handle reg t0-t2, s0-s11, detail please check RISCVRegisterInfo.td
-    if ((DstReg >= 6 && DstReg <= 10) || (DstReg >= 19 && DstReg <=  32)){
-      //if ((DstReg >= 6 && DstReg <=  32)){ //include a0-a7 registers
+    //if ((DstReg >= 6 && DstReg <= 10) || (DstReg >= 19 && DstReg <=  32)){
+    if ((DstReg >= 6 && DstReg <=  32)){ //include a0-a7 registers
       //REMEMBER LBDL has been implemented to load from shadow memory to GPR instead shadow register in new hardware.
       BuildMI(MBB, I, DL, get(RISCV::LBDLS), DstReg).addFrameIndex(FI).addImm(0);
       BuildMI(MBB, I, DL, get(RISCV::LBDUS), DstReg).addFrameIndex(FI).addImm(0);
     }
     //}
-  */
-
+    */
 }
 
 // kenny modified to store the shadow register into shadow memory when CalleeSavedRegisters(CSR).

@@ -320,7 +320,6 @@ __WEAK_INLINE void __softboundcets_allocate_shadow_stack_space(int num_pointer_a
   printf("kenny warning: using allocate_shadow_stack_space\n");
 #endif
 
-  /*
   //BEGIN
   #ifdef __FUNC_CYCLE
   //kenny record the cycle count
@@ -343,7 +342,6 @@ __WEAK_INLINE void __softboundcets_allocate_shadow_stack_space(int num_pointer_a
   asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
   asss_cycle += rdcycle_end - rdcycle_start;
   #endif  
-  */
 }
    
 __WEAK_INLINE void* __softboundcets_load_base_shadow_stack(int arg_no){
@@ -352,7 +350,6 @@ __WEAK_INLINE void* __softboundcets_load_base_shadow_stack(int arg_no){
   printf("kenny warning: using load_base_shadow_stack\n");
 #endif
     
-  /*
   //BEGIN
   #ifdef __FUNC_CYCLE
   //kenny record the cycle count
@@ -376,8 +373,6 @@ __WEAK_INLINE void* __softboundcets_load_base_shadow_stack(int arg_no){
   #endif
 
   return base;
-  */
-  return NULL;
 }
 
 __WEAK_INLINE void* __softboundcets_load_bound_shadow_stack(int arg_no){
@@ -386,7 +381,7 @@ __WEAK_INLINE void* __softboundcets_load_bound_shadow_stack(int arg_no){
   printf("kenny warning: using load_bound_shadow_stack\n");
 #endif
     
-  /*
+
   //BEGIN
   #ifdef __FUNC_CYCLE
   //kenny record the cycle count
@@ -411,8 +406,6 @@ __WEAK_INLINE void* __softboundcets_load_bound_shadow_stack(int arg_no){
   #endif
 
   return bound;
-  */
-  return NULL;
 }
 
 __WEAK_INLINE size_t __softboundcets_load_key_shadow_stack(int arg_no){
@@ -463,7 +456,6 @@ __WEAK_INLINE void __softboundcets_store_base_shadow_stack(void* base, int arg_n
   printf("kenny warning: using store_base_shadow_stack\n");
 #endif
     
-  /*
   //BEGIN
 #ifdef __FUNC_CYCLE
   //kenny record the cycle count
@@ -486,7 +478,7 @@ __WEAK_INLINE void __softboundcets_store_base_shadow_stack(void* base, int arg_n
   */
 
   //when we use the hardware managed shadow memory, there shall be no load/store from software shadow stack
-  /*
+
 #ifdef __HW_SECURITY
   printf("kenny: sombody is using store_base_shadow_stack\n");
 #endif
@@ -497,13 +489,12 @@ __WEAK_INLINE void __softboundcets_store_base_shadow_stack(void* base, int arg_n
   
   *(base_ptr) = base;
 
-//#endif
   
 #ifdef __FUNC_CYCLE
   asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
   sbas_cycle += rdcycle_end - rdcycle_start;
 #endif
-  */
+
 }
 
 __WEAK_INLINE void __softboundcets_store_bound_shadow_stack(void* bound, int arg_no){
@@ -512,7 +503,6 @@ __WEAK_INLINE void __softboundcets_store_bound_shadow_stack(void* bound, int arg
   printf("kenny warning: using store_bound_shadow_stack\n");
 #endif
     
-  /*
   //BEGIN
 #ifdef __FUNC_CYCLE
   //kenny record the cycle count
@@ -536,7 +526,7 @@ __WEAK_INLINE void __softboundcets_store_bound_shadow_stack(void* bound, int arg
   asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
   sbds_cycle += rdcycle_end - rdcycle_start;
 #endif
-  */
+
 }
 
 __WEAK_INLINE void __softboundcets_store_key_shadow_stack(size_t key, int arg_no){
@@ -583,7 +573,7 @@ __WEAK_INLINE void __softboundcets_store_lock_shadow_stack(void* lock, int arg_n
 }
 
 __WEAK_INLINE void __softboundcets_deallocate_shadow_stack_space(){
-  /*
+
   //BEGIN
   #ifdef __FUNC_CYCLE
   //kenny record the cycle count
@@ -603,7 +593,7 @@ __WEAK_INLINE void __softboundcets_deallocate_shadow_stack_space(){
   asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
   dsss_cycle += rdcycle_end - rdcycle_start;
   #endif
-  */
+
 }
 
 __WEAK_INLINE __softboundcets_trie_entry_t* __softboundcets_trie_allocate(){
@@ -652,6 +642,7 @@ __WEAK_INLINE void __softboundcets_introspect_metadata(void* ptr,
 __METADATA_INLINE 
 void __softboundcets_copy_metadata(void* dest, void* from, 
 				   size_t size){
+  
   //BEGIN
 #ifdef __FUNC_CYCLE
   //kenny record the cycle count
@@ -660,195 +651,64 @@ void __softboundcets_copy_metadata(void* dest, void* from,
 #endif
   
 #ifdef __HW_SECURITY
-  //printf("___copy_metadata_start___\n");
-  /*
-  asm volatile("lbdl %0, 0(%1)\n\tlbdu %0, 0(%1)\n\tsbdl %0, 0(%0)\n\tsbdu %0, 0(%0)"
-	       : 
-	       : "r" (dest), "r" (from)
-	       :
-	       );
-  return;
-  */
-
   // kenny Question: Why divide by 8? The alignment of RV64 memory?
   // might need to change to divide by 4 when using RV32
-  /* Original hardware for LBD which loading from shadow memory to shadow register
-  for(size_t i = 0; i < size/8; i++)
-    {
-      asm volatile("lbdl %0, 0(%1)\n\tlbdu %0, 0(%1)\n\tsbdl %0, 0(%0)\n\tsbdu %0, 0(%0)"
-		   : 
-		   : "r" (dest), "r" (from)
-		   :
-		   );
-      dest = (char*)dest + 8;
-      from = (char*)from + 8;
-      //dest = dest + 1;
-      //from = from + 1;
-    }
-  */
+  size_t dest_ptr = (size_t) dest;
+  size_t from_ptr = (size_t) from;
 
+  // We only need to copy the aligned shadow memory from "from" to "dest"
   static int aligned_flag = 0;
-  //Modification for LBD is loading from shadow memory to physical register
-  if(((size_t)from) % 8 != 0){
+  if(from_ptr % 8 != 0){
     if (aligned_flag == 0){
       printf("memcpy from_ptr not aligned\n");
       //aligned_flag = 1;
     }
     return;
   }
-  if(((size_t)dest) % 8 != 0){
+  if(dest_ptr % 8 != 0){
     if (aligned_flag == 0){
-    printf("memcpy dest_ptr not aligned\n");
-    //aligned_flag = 1;
+      printf("memcpy dest_ptr not aligned\n");
+      //aligned_flag = 1;
     }
     return;
-  }  
-  for(size_t i = 0; i < (size>>3); i++)
+  }
+
+  for(size_t i = 0; i < size; i=i+8)
     {
       //printf("kenny debug copy_metadata: dest=%lx \tfrom=%lx \tsize=%d\n", dest, from, i);
       void* base;
       void* bound;
       asm volatile("lbdl %[base], 0(%[from])\n\tlbdu %[bound], 0(%[from])\n\tbndr %[dest], %[base], %[bound]\n\tsbdl %[dest], 0(%[dest])\n\tsbdu %[dest], 0(%[dest])"
-		   : [base]"+r" (base), [bound]"+r" (bound)
-		   : [dest]"r" (dest), [from]"r" (from) 
+		   : [base]"+r" (base), [bound]"+r" (bound), [dest]"+r" (dest) 
+		   : [from]"r" (from) 
 		   :
 		   );
+
+      /*
+      void* base = (void*)0;
+      void* bound = (void*)(281474976710656);
+      asm volatile("bndr %[dest], %[base], %[bound]\n\tsbdl %[dest], 0(%[dest])\n\tsbdu %[dest], 0(%[dest])"
+		   : [dest]"+r" (dest) 
+		   : [base]"r" (base), [bound]"r" (bound)
+		   :
+		   );
+      */
       dest = (char*)dest + 8;
       from = (char*)from + 8;
     }
   
   //printf("___copy_metadata_end___\n");
-#ifdef __FUNC_CYCLE
-  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
-  cpmt_cycle += rdcycle_end - rdcycle_start;
-#endif
-  
-  return;
+
+#else
+  printf("kenny error: software _copy_metadata no longer support in this version\n");
 #endif //end __HW_SECURITY
 
-
-  //  printf("dest=%p, from=%p, size=%zx\n", dest, from, size);
-  /*
-  size_t dest_ptr = (size_t) dest;
-  size_t dest_ptr_end = dest_ptr + size;
-
-  size_t from_ptr = (size_t) from;
-  size_t from_ptr_end = from_ptr + size;
-
-
-  if(from_ptr % 8 != 0){
-    //printf("dest=%p, from=%p, size=%zx\n", dest, from, size);
-    return;
-    //    from_ptr = from_ptr %8;
-    //    dest_ptr = dest_ptr %8;
-
-  }
-
-  //  printf("dest=%p, from=%p, size=%zx\n", dest, from, size);
-  __softboundcets_trie_entry_t* trie_secondary_table_dest_begin;
-  __softboundcets_trie_entry_t* trie_secondary_table_from_begin;
-  
-  size_t dest_primary_index_begin = (dest_ptr >> 25);
-  size_t dest_primary_index_end = (dest_ptr_end >> 25);
-
-  size_t from_primary_index_begin = (from_ptr >> 25);
-  size_t from_primary_index_end =  (from_ptr_end >> 25);
-
-
-  if((from_primary_index_begin != from_primary_index_end) || 
-     (dest_primary_index_begin != dest_primary_index_end)){
-
-    size_t from_sizet = from_ptr;
-    size_t dest_sizet = dest_ptr;
-
-    size_t trie_size = size;
-    size_t index = 0;
-
-    for(index=0; index < trie_size; index = index + 8){
-      
-      size_t temp_from_pindex = (from_sizet + index) >> 25;
-      size_t temp_to_pindex = (dest_sizet + index) >> 25;
-
-      size_t dest_secondary_index = (((dest_sizet + index) >> 3) & 0x3fffff);
-      size_t from_secondary_index = (((from_sizet + index) >> 3) & 0x3fffff);
-      
-      __softboundcets_trie_entry_t* temp_from_strie = __softboundcets_trie_primary_table[temp_from_pindex];
-
-      if(temp_from_strie == NULL){
-        temp_from_strie = __softboundcets_trie_allocate();
-        __softboundcets_trie_primary_table[temp_from_pindex] = temp_from_strie;
-      }
-     __softboundcets_trie_entry_t* temp_to_strie = __softboundcets_trie_primary_table[temp_to_pindex];
-
-      if(temp_to_strie == NULL){
-        temp_to_strie = __softboundcets_trie_allocate();
-        __softboundcets_trie_primary_table[temp_to_pindex] = temp_to_strie;
-      }
-
-      void* dest_entry_ptr = &temp_to_strie[dest_secondary_index];
-      void* from_entry_ptr = &temp_from_strie[from_secondary_index];
-  
-#ifdef __SOFTBOUNDCETS_SPATIAL
-      memcpy(dest_entry_ptr, from_entry_ptr, 16);
-#elif __SOFTBOUNDCETS_TEMPORAL
-      memcpy(dest_entry_ptr, from_entry_ptr, 16);
-#elif __SOFTBOUNDCETS_SPATIAL_TEMPORAL
-      memcpy(dest_entry_ptr, from_entry_ptr, 32);
-#else
-      memcpy(dest_entry_ptr, from_entry_ptr, 32);
-#endif
-    }
-
-#ifdef __FUNC_CYCLE
-  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
-  cpmt_cycle += rdcycle_end - rdcycle_start;
-#endif
-
-  return;
-  
-  }
-    
-  trie_secondary_table_dest_begin = __softboundcets_trie_primary_table[dest_primary_index_begin];
-  trie_secondary_table_from_begin = __softboundcets_trie_primary_table[from_primary_index_begin];
-  
-  if(trie_secondary_table_from_begin == NULL)
-    return;
-
-  if(trie_secondary_table_dest_begin == NULL){
-    trie_secondary_table_dest_begin = __softboundcets_trie_allocate();
-    __softboundcets_trie_primary_table[dest_primary_index_begin] = trie_secondary_table_dest_begin;
-  }
-
-  size_t dest_secondary_index = ((dest_ptr>> 3) & 0x3fffff);
-  size_t from_secondary_index = ((from_ptr>> 3) & 0x3fffff);
-  
-  assert(dest_secondary_index < __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES);
-  assert(from_secondary_index < __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES);
-
-  void* dest_entry_ptr = &trie_secondary_table_dest_begin[dest_secondary_index];
-  void* from_entry_ptr = &trie_secondary_table_from_begin[from_secondary_index];
-  
-#ifdef __SOFTBOUNDCETS_SPATIAL
-
-  memcpy(dest_entry_ptr, from_entry_ptr, 16* (size>>3));
-#elif __SOFTBOUNDCETS_TEMPORAL
-
-  memcpy(dest_entry_ptr, from_entry_ptr, 16* (size>>3));
-#elif __SOFTBOUNDCETS_SPATIAL_TEMPORAL
-
-  memcpy(dest_entry_ptr, from_entry_ptr, 32* (size >> 3));
-#else
-
-  memcpy(dest_entry_ptr, from_entry_ptr, 32* (size>> 3));
-#endif
-
 #ifdef __FUNC_CYCLE
   asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
   cpmt_cycle += rdcycle_end - rdcycle_start;
 #endif
   
   return;
-  */
 }
 
 __WEAK_INLINE void 
@@ -856,7 +716,8 @@ __softboundcets_shrink_bounds(void* new_base, void* new_bound,
                               void* old_base, void* old_bound, 
                               void** base_alloca, void** bound_alloca) {
 
-
+  printf("kenny warning: using shrink_bound\n");
+  
   *(base_alloca) = new_base < old_base ? old_base: new_base;
   *(bound_alloca) = new_bound > old_bound? old_bound : new_bound;
 }
@@ -959,7 +820,20 @@ __WEAK_INLINE void
 __softboundcets_memcopy_check(void* dest, void* src, size_t size,
                               void* dest_base, void* dest_bound, 
                               void* src_base, void* src_bound) {
+
+
+#ifdef __HW_SECURITY
+  static int memcopy_check_flag = 0;
+  if (memcopy_check_flag ==0){
+    printf("memcopy check no longer performed in wrapper but in later pointer access\n");
+    memcopy_check_flag = 1;
+  }
+  return;
+}
+#endif //end of __HW_SECURITY
+#endif //kenny end of _SPATIAL
   
+  /*
   //BEGIN
 #ifdef __FUNC_CYCLE
   //kenny record the cycle count
@@ -1036,8 +910,7 @@ __softboundcets_memcopy_check(void* dest, void* src, size_t size,
   
 #ifndef __NOSIM_CHECKS
 
-  /* printf("dest=%zx, src=%zx, size=%zx, ulong_max=%zx\n",  */
-  /*        dest, src, size, ULONG_MAX); */
+  // printf("dest=%zx, src=%zx, size=%zx, ulong_max=%zx\n", dest, src, size, ULONG_MAX);
   if(size >= LONG_MAX)
     __softboundcets_abort();
 
@@ -1078,7 +951,8 @@ __softboundcets_memcopy_check(void* dest, void* src, size_t size,
 
 }
 #endif
-
+  */
+  
 /* Memset check, different variants based on spatial, temporal and
    spatial+temporal modes */
 
@@ -1087,6 +961,19 @@ __softboundcets_memcopy_check(void* dest, void* src, size_t size,
 __WEAK_INLINE void 
 __softboundcets_memset_check(void* dest, size_t size,
                              void* dest_base, void* dest_bound){
+
+#ifdef __HW_SECURITY
+  static int memset_check_flag = 0;
+  if (memset_check_flag ==0){
+    printf("memset check no longer performed in wrapper but in later pointer access\n");
+    memset_check_flag = 1;
+  }
+  return;
+}
+#endif //end of __HW_SECURITY
+#endif //kenny end of _SPATIAL
+
+/*
   //BEGIN
   #ifdef __FUNC_CYCLE
   //kenny record the cycle count
@@ -1179,7 +1066,7 @@ __softboundcets_memset_check(void* dest, size_t size,
 
 }
 #endif
-
+*/
 
 
 /* Metadata store parameterized by the mode of checking */
@@ -1324,7 +1211,7 @@ __METADATA_INLINE void __softboundcets_metadata_store(void* addr_of_ptr,
 
    //when we use the hardware managed shadow memory, there shall be no load/store from software shadow stack
 #ifdef __HW_SECURITY
-  printf("kenny: sombody is using metadata_load_base\n");
+  printf("kenny warning: sombody is using metadata_load_base\n");
 #endif
   
    __softboundcets_trie_entry_t* entry_ptr = (__softboundcets_trie_entry_t*)address;
@@ -1336,7 +1223,7 @@ __METADATA_INLINE void __softboundcets_metadata_store(void* addr_of_ptr,
 
    //when we use the hardware managed shadow memory, there shall be no load/store from software shadow stack
 #ifdef __HW_SECURITY
-  printf("kenny: sombody is using metadata_load_bound\n");
+  printf("kenny warning: sombody is using metadata_load_bound\n");
 #endif
   
    __softboundcets_trie_entry_t* entry_ptr = (__softboundcets_trie_entry_t*)address;

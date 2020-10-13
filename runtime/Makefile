@@ -25,6 +25,7 @@ softboundcets_rt_riscv: softboundcets.h softboundcets-checks.c softboundcets.c s
 	clang $(CFLAGS) -c softboundcets.c -o softboundcets.o
 	clang $(CFLAGS) -c softboundcets-wrappers.c -o softboundcets-wrappers.o
 	riscv64-unknown-linux-gnu-ar $(ARFLAGS) libsoftboundcets_rt.a softboundcets.o softboundcets-checks.o softboundcets-wrappers.o
+	llvm-objdump -disassemble libsoftboundcets_rt.a > dump
 
 softboundcets_rt: softboundcets.h softboundcets-checks.c softboundcets.c softboundcets-wrappers.c
 	clang $(CFLAGS) -c softboundcets-checks.c -o softboundcets-checks.o
@@ -45,4 +46,4 @@ softboundcets_rt_bc: softboundcets.h softboundcets-checks.c softboundcets.c soft
 	clang $(CFLAGS) -emit-llvm -c softboundcets-wrappers.c -o softboundcets-wrappers.bc
 
 clean:
-	rm -rf *.o *.a *.ll *.s  *~ lto/ *.bc
+	rm -rf *.o *.a *.ll *.s  *~ lto/ *.bc dump

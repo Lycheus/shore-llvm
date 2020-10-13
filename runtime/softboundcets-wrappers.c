@@ -1266,9 +1266,22 @@ __WEAK_INLINE char* softboundcets_gets(char* s){
 }
 
 __WEAK_INLINE char* softboundcets_fgets(char* s, int size, FILE* stream){
-  printf("kenny warning: fgets\n");
+
   char* ret_ptr = fgets(s, size, stream);
+  
+#ifdef __HW_SECURITY
+  //void* container;
+  asm volatile("sbdl %[char_s], 0(%[container])\n\tsbdu %[char_s], 0(%[container])\n\tlbdls %[ret_ptr], 0(%[container])\n\tlbdus %[ret_ptr], 0(%[container])"
+	       : [ret_ptr]"+r" (ret_ptr)
+	       : [container]"r" (&ret_ptr), [char_s]"r" (s)
+	       :
+	       );
+#else
+
+  printf("kenny warning: fgets\n");
   __softboundcets_propagate_metadata_shadow_stack_from(1,0);
+
+#endif  
 
   return ret_ptr;
 }
@@ -1560,10 +1573,24 @@ __WEAK_INLINE void softboundcets_exit(int status) {
 }
 
 __WEAK_INLINE char*  softboundcets_strtok(char* str, const char* delim){
-  printf("kenny warning: strtok\n");  
+
   char* ret_ptr = strtok(str, delim);
+  
+#ifdef __HW_SECURITY
+  void* base = (void*)0;
+  void* bound = (void*)(281474976710656);
+  
+  asm volatile ("bndr %[rd], %[rs1], %[rs2]"
+		: [rd]"+r" (ret_ptr)
+		: [rs1]"r" (base), [rs2]"r" (bound)
+		:
+		);
+  
+#else
+  printf("kenny warning: strtok\n");  
   __softboundcets_store_return_metadata((void*)0, (void*)(281474976710656), 
                                         1, __softboundcets_global_lock);
+#endif
   return ret_ptr;
 }
 

@@ -204,7 +204,7 @@ static void softboundcets_init_ctype(){
 
   ptr = (void*) __ctype_b_loc();
   base_ptr = (void*) (*(__ctype_b_loc()));
-  printf("init_ctype: __ctype_b_loc() = %x\n", __ctype_b_loc());
+  //printf("init_ctype: __ctype_b_loc() = %x\n", __ctype_b_loc());
 
 #ifdef __HW_SECURITY
   //implenent the ctype initialization in hardware
