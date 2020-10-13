@@ -2248,7 +2248,7 @@ SoftBoundCETS::introduceShadowStackStores(Value* ptr_value,
     */
 
     if (arg_no > 8)
-      printf("kenny function argument larger than 8, metadata passing by shadow register will fail\n");
+      printf("kenny error: function argument larger than 8, metadata passing by shadow register will fail\n");
 
     /*
     std::string topString = "bndr a";
@@ -4851,7 +4851,7 @@ SoftBoundCETS:: iterateCallSiteIntroduceShadowStackStores(CallInst* call_inst){
       introduceShadowStackStores(arg_value, call_inst, pointer_arg_no);
       //pointer_arg_no++; // kenny when this  number is 1 means  the first pointer and 2 for second pointer instead the acture argument number in the function. But this is not what we need. Now we are assigning it into the actural register which contains the pointer this this number shall indicate the acture argument number.
     }
-    pointer_arg_no++; // kenny this number means 1st is the first pointer and 2nd is second pointer instead the acture argument number in the function. But now we are assigning it into the acture register which contains the pointer this this number shall indicate the acture argument number. THIS ONE SUPPORT THE ACTURE ARG_NO
+    pointer_arg_no++; // kenny originally this number means 1st is the first pointer and 2nd is second pointer instead the acture argument number in the function. But now we are assigning it into the acture register which contains the pointer this this number shall indicate the acture argument number. THIS ONE SUPPORT THE ACTURE ARG_NO
     if(pointer_arg_no > 8)
       printf("kenny error: pointer_arg_no > 8 arguement are larger than 8, shadow register arguement passing failed\n");
   }    
