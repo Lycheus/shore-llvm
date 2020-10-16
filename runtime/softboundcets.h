@@ -661,14 +661,14 @@ void __softboundcets_copy_metadata(void* dest, void* from,
   if(from_ptr % 8 != 0){
     if (aligned_flag == 0){
       printf("memcpy from_ptr not aligned\n");
-      //aligned_flag = 1;
+      aligned_flag = 1;
     }
     return;
   }
   if(dest_ptr % 8 != 0){
     if (aligned_flag == 0){
       printf("memcpy dest_ptr not aligned\n");
-      //aligned_flag = 1;
+      aligned_flag = 1;
     }
     return;
   }

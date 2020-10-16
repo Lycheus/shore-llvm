@@ -74,6 +74,7 @@ void RISCVAsmPrinter::EmitToStreamer(MCStreamer &S, const MCInst &Inst) {
 // instructions) auto-generated.
 #include "RISCVGenMCPseudoLowering.inc"
 
+int match_count = 0;
 extern bool kenny_bounded; //bounded flag set in AsmPrinterInlineAsm.cpp L484 EmitInlineAsm()
 extern unsigned kenny_regnum;
 void RISCVAsmPrinter::EmitInstruction(const MachineInstr *MI) {
@@ -83,69 +84,98 @@ void RISCVAsmPrinter::EmitInstruction(const MachineInstr *MI) {
 
   //kenny transform the standard load and store into bounded load and store depend on bounded flag
   if(kenny_bounded){
-
-    //sanity check: we are inside bounded section but the regnum from bndr is 0? might come from lbd?
+    //sanity check: we are inside bounded section but the regnum from bndr is 0?
     if(kenny_regnum == 0)
       printf("ERROR: There is a bounded load/store without matching bndr or lbd\n");
 
     MCInst BndInst;
     LowerRISCVMachineInstrToMCInst(MI, BndInst, *this);
+
     if(MI->mayLoad()){
       //printf("load_reg: %d, %d, %d, %d.\nbnd_reg: %d\n", BndInst.getOperand(0).getReg(), BndInst.getOperand(1).getReg(), BndInst.getOperand(2).getReg(), BndInst.getOperand(3).getReg(), kenny_regnum);
       if(BndInst.getOperand(1).getReg()==kenny_regnum){
-	switch(BndInst.getOpcode())
+	match_count = match_count + 1;
+
+	if(match_count >= 2)
 	  {
-	  case RISCV::LB:
-	    BndInst.setOpcode(RISCV::LB_B);
-	    break;
-	  case RISCV::LH:
-	    BndInst.setOpcode(RISCV::LH_B);
-	    break;
-	  case RISCV::LW:
-	    BndInst.setOpcode(RISCV::LW_B);
-	    break;
-	  case RISCV::LD:
-	    BndInst.setOpcode(RISCV::LD_B);
-	    break;
-	  case RISCV::LBU:
-	    BndInst.setOpcode(RISCV::LBU_B);
-	    break;
-	  case RISCV::LHU:
-	    BndInst.setOpcode(RISCV::LHU_B);
-	    break;
-	  case RISCV::LWU:
-	    BndInst.setOpcode(RISCV::LWU_B);
-	    break;
-	  default:
-	    break;
+	    printf("kenny error: multiple %d load target matched to replace into bounded load\n", match_count);
+	    OutStreamer->AddComment("kenny multiple load\n");
+	    //BndInst.print(outs());
+	    //outs() << "\n";
+
+	  }
+	
+	if (match_count < 2)
+	  {
+	    switch(BndInst.getOpcode())
+	      {
+	      case RISCV::LB:
+		BndInst.setOpcode(RISCV::LB_B);
+		break;
+	      case RISCV::LH:
+		BndInst.setOpcode(RISCV::LH_B);
+		break;
+	      case RISCV::LW:
+		BndInst.setOpcode(RISCV::LW_B);
+		break;
+	      case RISCV::LD:
+		BndInst.setOpcode(RISCV::LD_B);
+		break;
+	      case RISCV::LBU:
+		BndInst.setOpcode(RISCV::LBU_B);
+		break;
+	      case RISCV::LHU:
+		BndInst.setOpcode(RISCV::LHU_B);
+		break;
+	      case RISCV::LWU:
+		BndInst.setOpcode(RISCV::LWU_B);
+		break;
+	      default:
+		break;
+	      }
 	  }
       }
     }
     if(MI->mayStore()){
       //printf("store_reg: %d, %d, %d, %d.\nbnd_reg: %d\n", BndInst.getOperand(0).getReg(), BndInst.getOperand(1).getReg(), BndInst.getOperand(2).getReg(), BndInst.getOperand(3).getReg(), kenny_regnum);
       if(BndInst.getOperand(1).getReg()==kenny_regnum){
-	switch(BndInst.getOpcode())
+	match_count = match_count + 1;
+	if(match_count >= 2)
 	  {
-	  case RISCV::SB:
-	    BndInst.setOpcode(RISCV::SB_B);
-	    break;
-	  case RISCV::SH:
-	    BndInst.setOpcode(RISCV::SH_B);
-	    break;
-	  case RISCV::SW:
-	    BndInst.setOpcode(RISCV::SW_B);
-	    break;
-	  case RISCV::SD:
-	    BndInst.setOpcode(RISCV::SD_B);
-	    break;
-	  default:
-	    break;
+	    printf("kenny error: multiple %d store target matched to replace into bounded store\n", match_count);
+	    OutStreamer->AddComment("kenny multiple store\n");
+	    //BndInst.print(outs());
+	    //outs() << "\n";
+	  }
+	
+	if (match_count < 2)
+	  
+	  {
+	    switch(BndInst.getOpcode())
+	      {
+	      case RISCV::SB:
+		BndInst.setOpcode(RISCV::SB_B);
+		break;
+	      case RISCV::SH:
+		BndInst.setOpcode(RISCV::SH_B);
+		break;
+	      case RISCV::SW:
+		BndInst.setOpcode(RISCV::SW_B);
+		break;
+	      case RISCV::SD:
+		BndInst.setOpcode(RISCV::SD_B);
+		break;
+	      default:
+		break;
+	      }
 	  }
       }
     }
     EmitToStreamer(*OutStreamer, BndInst);
-    return;  
+    return;
   }
+  
+  match_count = 0;
   
   MCInst TmpInst;
   LowerRISCVMachineInstrToMCInst(MI, TmpInst, *this);

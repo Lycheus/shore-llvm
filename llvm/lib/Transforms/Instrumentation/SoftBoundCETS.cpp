@@ -5624,7 +5624,6 @@ void SoftBoundCETS::insertMetadataLoad(LoadInst* load_inst){
     Instruction* lock_load = new LoadInst(lock_alloca, "lock.load", insert_at);    
     associateKeyLock(load_inst_value, key_load, lock_load);
   }
-  /**/
 
 }
 
