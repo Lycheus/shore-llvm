@@ -579,9 +579,6 @@ __WEAK_INLINE void __softboundcets_introspect_metadata(void* ptr,
 __METADATA_INLINE 
 void __softboundcets_copy_metadata(void* dest, void* from, 
 				   size_t size){
-
-  
-
   //BEGIN
 #ifdef __FUNC_CYCLE
   //kenny record the cycle count
@@ -602,45 +599,36 @@ void __softboundcets_copy_metadata(void* dest, void* from,
 
   // kenny Question: Why divide by 8? The alignment of RV64 memory?
   // might need to change to divide by 4 when using RV32
-  /* Original hardware for LBD which loading from shadow memory to shadow register
-  for(size_t i = 0; i < size/8; i++)
-    {
-      asm volatile("lbdl %0, 0(%1)\n\tlbdu %0, 0(%1)\n\tsbdl %0, 0(%0)\n\tsbdu %0, 0(%0)"
-		   : 
-		   : "r" (dest), "r" (from)
-		   :
-		   );
-      dest = (char*)dest + 8;
-      from = (char*)from + 8;
-      //dest = dest + 1;
-      //from = from + 1;
-    }
-  */
 
+  size_t dest_ptr = (size_t) dest;
+  size_t from_ptr = (size_t) from;
+  
+  // We only need to copy the aligned shadow memory from "from" to "dest"
   static int aligned_flag = 0;
   //Modification for LBD is loading from shadow memory to physical register
-  if(((size_t)from) % 8 != 0){
+  if(from_ptr % 8 != 0){
     if (aligned_flag == 0){
       printf("memcpy from_ptr not aligned\n");
       aligned_flag = 1;
     }
     return;
   }
-  if(((size_t)dest) % 8 != 0){
+  if(dest_ptr % 8 != 0){
     if (aligned_flag == 0){
     printf("memcpy dest_ptr not aligned\n");
       aligned_flag = 1;
     }
     return;
   }  
-  for(size_t i = 0; i < (size>>3); i++)
+
+  for(size_t i = 0; i < size; i=i+8)
     {
       //printf("kenny debug copy_metadata: dest=%lx \tfrom=%lx \tsize=%d\n", dest, from, i);
       void* base;
       void* bound;
       asm volatile("lbdl %[base], 0(%[from])\n\tlbdu %[bound], 0(%[from])\n\tbndr %[dest], %[base], %[bound]\n\tsbdl %[dest], 0(%[dest])\n\tsbdu %[dest], 0(%[dest])"
-		   : [base]"=r" (base), [bound]"=r" (bound)
-		   : [dest]"r" (dest), [from]"r" (from) 
+		   : [base]"+r" (base), [bound]"+r" (bound), [dest]"+r" (dest)
+		   : [from]"r" (from)
 		   :
 		   );
       dest = (char*)dest + 8;
@@ -648,130 +636,10 @@ void __softboundcets_copy_metadata(void* dest, void* from,
     }
   
   //printf("___copy_metadata_end___\n");
-#ifdef __FUNC_CYCLE
-  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
-  cpmt_cycle += rdcycle_end - rdcycle_start;
-#endif
-  
-  return;
-#endif
-
-
-  //  printf("dest=%p, from=%p, size=%zx\n", dest, from, size);
-  
-  size_t dest_ptr = (size_t) dest;
-  size_t dest_ptr_end = dest_ptr + size;
-
-  size_t from_ptr = (size_t) from;
-  size_t from_ptr_end = from_ptr + size;
-
-
-  if(from_ptr % 8 != 0){
-    //printf("dest=%p, from=%p, size=%zx\n", dest, from, size);
-    return;
-    //    from_ptr = from_ptr %8;
-    //    dest_ptr = dest_ptr %8;
-
-  }
-
-  //  printf("dest=%p, from=%p, size=%zx\n", dest, from, size);
-  __softboundcets_trie_entry_t* trie_secondary_table_dest_begin;
-  __softboundcets_trie_entry_t* trie_secondary_table_from_begin;
-  
-  size_t dest_primary_index_begin = (dest_ptr >> 25);
-  size_t dest_primary_index_end = (dest_ptr_end >> 25);
-
-  size_t from_primary_index_begin = (from_ptr >> 25);
-  size_t from_primary_index_end =  (from_ptr_end >> 25);
-
-
-  if((from_primary_index_begin != from_primary_index_end) || 
-     (dest_primary_index_begin != dest_primary_index_end)){
-
-    size_t from_sizet = from_ptr;
-    size_t dest_sizet = dest_ptr;
-
-    size_t trie_size = size;
-    size_t index = 0;
-
-    for(index=0; index < trie_size; index = index + 8){
-      
-      size_t temp_from_pindex = (from_sizet + index) >> 25;
-      size_t temp_to_pindex = (dest_sizet + index) >> 25;
-
-      size_t dest_secondary_index = (((dest_sizet + index) >> 3) & 0x3fffff);
-      size_t from_secondary_index = (((from_sizet + index) >> 3) & 0x3fffff);
-      
-      __softboundcets_trie_entry_t* temp_from_strie = __softboundcets_trie_primary_table[temp_from_pindex];
-
-      if(temp_from_strie == NULL){
-        temp_from_strie = __softboundcets_trie_allocate();
-        __softboundcets_trie_primary_table[temp_from_pindex] = temp_from_strie;
-      }
-     __softboundcets_trie_entry_t* temp_to_strie = __softboundcets_trie_primary_table[temp_to_pindex];
-
-      if(temp_to_strie == NULL){
-        temp_to_strie = __softboundcets_trie_allocate();
-        __softboundcets_trie_primary_table[temp_to_pindex] = temp_to_strie;
-      }
-
-      void* dest_entry_ptr = &temp_to_strie[dest_secondary_index];
-      void* from_entry_ptr = &temp_from_strie[from_secondary_index];
-  
-#ifdef __SOFTBOUNDCETS_SPATIAL
-      memcpy(dest_entry_ptr, from_entry_ptr, 16);
-#elif __SOFTBOUNDCETS_TEMPORAL
-      memcpy(dest_entry_ptr, from_entry_ptr, 16);
-#elif __SOFTBOUNDCETS_SPATIAL_TEMPORAL
-      memcpy(dest_entry_ptr, from_entry_ptr, 32);
 #else
-      memcpy(dest_entry_ptr, from_entry_ptr, 32);
-#endif
-    }
-
-#ifdef __FUNC_CYCLE
-  asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
-  cpmt_cycle += rdcycle_end - rdcycle_start;
-#endif
-
-  return;
+  printf("kenny error: software _copy_metadata no longer support in this version\n");
+#endif //end __HW_SECURITY
   
-  }
-    
-  trie_secondary_table_dest_begin = __softboundcets_trie_primary_table[dest_primary_index_begin];
-  trie_secondary_table_from_begin = __softboundcets_trie_primary_table[from_primary_index_begin];
-  
-  if(trie_secondary_table_from_begin == NULL)
-    return;
-
-  if(trie_secondary_table_dest_begin == NULL){
-    trie_secondary_table_dest_begin = __softboundcets_trie_allocate();
-    __softboundcets_trie_primary_table[dest_primary_index_begin] = trie_secondary_table_dest_begin;
-  }
-
-  size_t dest_secondary_index = ((dest_ptr>> 3) & 0x3fffff);
-  size_t from_secondary_index = ((from_ptr>> 3) & 0x3fffff);
-  
-  assert(dest_secondary_index < __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES);
-  assert(from_secondary_index < __SOFTBOUNDCETS_TRIE_SECONDARY_TABLE_ENTRIES);
-
-  void* dest_entry_ptr = &trie_secondary_table_dest_begin[dest_secondary_index];
-  void* from_entry_ptr = &trie_secondary_table_from_begin[from_secondary_index];
-  
-#ifdef __SOFTBOUNDCETS_SPATIAL
-
-  memcpy(dest_entry_ptr, from_entry_ptr, 16* (size>>3));
-#elif __SOFTBOUNDCETS_TEMPORAL
-
-  memcpy(dest_entry_ptr, from_entry_ptr, 16* (size>>3));
-#elif __SOFTBOUNDCETS_SPATIAL_TEMPORAL
-
-  memcpy(dest_entry_ptr, from_entry_ptr, 32* (size >> 3));
-#else
-
-  memcpy(dest_entry_ptr, from_entry_ptr, 32* (size>> 3));
-#endif
-
 #ifdef __FUNC_CYCLE
   asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
   cpmt_cycle += rdcycle_end - rdcycle_start;

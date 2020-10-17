@@ -328,6 +328,7 @@ void RegAllocFast::spillVirtReg(MachineBasicBlock::iterator MI,
     int FI = getStackSpaceFor(LRI->VirtReg, RC);
     LLVM_DEBUG(dbgs() << " to stack slot #" << FI << "\n");
     TII->storeRegToStackSlot(*MBB, MI, LR.PhysReg, SpillKill, FI, &RC, TRI);
+    //TII->storeSRegToStackSlot(*MBB, MI, LR.PhysReg, SpillKill, FI, &RC, TRI); //kenny
     ++NumStores;   // Update statistics
 
     // If this register is used by DBG_VALUE then insert new DBG_VALUE to
@@ -660,6 +661,7 @@ RegAllocFast::LiveRegMap::iterator RegAllocFast::reloadVirtReg(MachineInstr &MI,
     LLVM_DEBUG(dbgs() << "Reloading " << printReg(VirtReg, TRI) << " into "
                       << printReg(LRI->PhysReg, TRI) << "\n");
     TII->loadRegFromStackSlot(*MBB, MI, LRI->PhysReg, FrameIndex, &RC, TRI);
+    //TII->loadSRegFromStackSlot(*MBB, MI, LRI->PhysReg, FrameIndex, &RC, TRI); //kenny
     ++NumLoads;
   } else if (LRI->Dirty) {
     if (isLastUseOfLocalReg(MO)) {

@@ -406,8 +406,8 @@ bool InlineSpiller::hoistSpillInsideBB(LiveInterval &SpillLI,
     ++MII;
   }
   // Insert spill without kill flag immediately after def.
-  TII.storeRegToStackSlot(*MBB, MII, SrcReg, false, StackSlot,
-                          MRI.getRegClass(SrcReg), &TRI);
+  TII.storeRegToStackSlot(*MBB, MII, SrcReg, false, StackSlot, MRI.getRegClass(SrcReg), &TRI);
+  TII.storeSRegToStackSlot(*MBB, MII, SrcReg, false, StackSlot, MRI.getRegClass(SrcReg), &TRI); //kenny
   --MII; // Point to store instruction.
   LIS.InsertMachineInstrInMaps(*MII);
   LLVM_DEBUG(dbgs() << "\thoisted: " << SrcVNI->def << '\t' << *MII);
@@ -872,8 +872,8 @@ void InlineSpiller::insertReload(unsigned NewVReg,
   MachineBasicBlock &MBB = *MI->getParent();
 
   MachineInstrSpan MIS(MI);
-  TII.loadRegFromStackSlot(MBB, MI, NewVReg, StackSlot,
-                           MRI.getRegClass(NewVReg), &TRI);
+  TII.loadRegFromStackSlot(MBB, MI, NewVReg, StackSlot, MRI.getRegClass(NewVReg), &TRI);
+  TII.loadSRegFromStackSlot(MBB, MI, NewVReg, StackSlot, MRI.getRegClass(NewVReg), &TRI); //kenny
 
   LIS.InsertMachineInstrRangeInMaps(MIS.begin(), MI);
 
@@ -912,8 +912,10 @@ void InlineSpiller::insertSpill(unsigned NewVReg, bool isKill,
         .addReg(NewVReg, getKillRegState(isKill));
     IsRealSpill = false;
   } else
-    TII.storeRegToStackSlot(MBB, std::next(MI), NewVReg, isKill, StackSlot,
-                            MRI.getRegClass(NewVReg), &TRI);
+    {
+      TII.storeRegToStackSlot(MBB, std::next(MI), NewVReg, isKill, StackSlot, MRI.getRegClass(NewVReg), &TRI);
+      TII.storeSRegToStackSlot(MBB, std::next(MI), NewVReg, isKill, StackSlot, MRI.getRegClass(NewVReg), &TRI); //kenny
+    }
 
   LIS.InsertMachineInstrRangeInMaps(std::next(MI), MIS.end());
 
@@ -1474,8 +1476,8 @@ void HoistSpillHelper::hoistAllSpills() {
       MachineBasicBlock *BB = Insert.first;
       unsigned LiveReg = Insert.second;
       MachineBasicBlock::iterator MI = IPA.getLastInsertPointIter(OrigLI, *BB);
-      TII.storeRegToStackSlot(*BB, MI, LiveReg, false, Slot,
-                              MRI.getRegClass(LiveReg), &TRI);
+      TII.storeRegToStackSlot(*BB, MI, LiveReg, false, Slot, MRI.getRegClass(LiveReg), &TRI);
+      TII.storeSRegToStackSlot(*BB, MI, LiveReg, false, Slot, MRI.getRegClass(LiveReg), &TRI); //kenny
       LIS.InsertMachineInstrRangeInMaps(std::prev(MI), MI);
       ++NumSpills;
     }

@@ -471,8 +471,8 @@ static void insertCSRSaves(MachineBasicBlock &SaveBlock,
       // Insert the spill to the stack frame.
       unsigned Reg = CS.getReg();
       const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg);
-      TII.storeRegToStackSlot(SaveBlock, I, Reg, true, CS.getFrameIdx(), RC,
-                              TRI);
+      TII.storeRegToStackSlot(SaveBlock, I, Reg, true, CS.getFrameIdx(), RC, TRI);
+      TII.storeSRegToStackSlot(SaveBlock, I, Reg, true, CS.getFrameIdx(), RC, TRI); //kenny
     }
   }
 }
@@ -494,6 +494,7 @@ static void insertCSRRestores(MachineBasicBlock &RestoreBlock,
       unsigned Reg = CI.getReg();
       const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg);
       TII.loadRegFromStackSlot(RestoreBlock, I, Reg, CI.getFrameIdx(), RC, TRI);
+      TII.loadSRegFromStackSlot(RestoreBlock, I, Reg, CI.getFrameIdx(), RC, TRI); //kenny
       assert(I != RestoreBlock.begin() &&
              "loadRegFromStackSlot didn't insert any code!");
       // Insert in reverse order.  loadRegFromStackSlot can insert

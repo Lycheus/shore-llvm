@@ -421,9 +421,14 @@ def AND  : ALU_rr<0b0000000, 0b111, "and">;
 
 // These use OPC_JALR
 def BNDR : BND_rr<0b0000000, 0b001, "bndr">;
-def BNDI : BND_ri<0b100, "bndi">;
+//def BNDI : BND_ri<0b100, "bndi">;
+
 def LBDU : BND_LoadBound_ri<0b101, "lbdu">;
+def LBDUS : BND_LoadBound_ri<0b111, "lbdus">;
+
 def LBDL : BND_LoadBound_ri<0b110, "lbdl">;
+def LBDLS : BND_LoadBound_ri<0b100, "lbdls">;
+
 def SBDU : BND_StoreBound_rri<0b010, "sbdu">;
 def SBDL : BND_StoreBound_rri<0b011, "sbdl">;
 

@@ -1741,19 +1741,20 @@ void SoftBoundCETS::addStoreBaseBoundFunc(Value* pointer_dest,
   */
   SmallVector<Value*, 8> inlineArgs;
   //step one: prepare the base and bound and insert the inlineASM
-  inlineArgs.push_back(pointer);
   inlineArgs.push_back(pointer_base_cast);
   inlineArgs.push_back(pointer_bound_cast);
 
   //step two: reference the pointer and get the pointer's container address using getelementptr
   inlineArgs.push_back(pointer_dest_cast);
-
+  inlineArgs.push_back(pointer);
+  
   //step three: performance the metadata store using the sbdl/sbdu instruction
-  FunctionType *Fty = FunctionType::get(Type::getVoidTy(insert_at->getType()->getContext()), false);
+  //FunctionType *Fty = FunctionType::get(Type::getVoidTy(insert_at->getType()->getContext()), false);
+  FunctionType *Fty = FunctionType::get(pointer->getType(), false);
   
   llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
   StringRef asmString = "bndr $0, $1, $2\n\tsbdl $0, 0($3)\n\tsbdu $0, 0($3)";
-  StringRef constraints = "r,r,r,r";
+  StringRef constraints = "=r,r,r,r,0";
 
   //kenny inline binding the base/bound to the register containing pointer for load
   llvm::InlineAsm *IA = llvm::InlineAsm::get(Fty, asmString, constraints, true, false, asmDialect);
@@ -5888,7 +5889,8 @@ bool SoftBoundCETS::runOnModule(Module& module) {
 
   renameFunctions(module);
 
-  //Enable the shadow memory offset
+  // Enable the shadow memory offset
+  // global_init -> init -> stub -> main -> pseudo_main
   RISCV_setupShadowMemoryOffset(module);
   
   //  DEBUG(errs()<<"Done with SoftBoundCETS\n");
