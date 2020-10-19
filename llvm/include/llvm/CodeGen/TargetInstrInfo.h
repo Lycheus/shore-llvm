@@ -918,7 +918,7 @@ public:
 				     const TargetRegisterClass *RC,
 				     const TargetRegisterInfo *TRI) const {
     llvm_unreachable("Target didn't implement "
-		     +                     "TargetInstrInfo::loadRegFromStackSlot!");
+		     "TargetInstrInfo::loadRegFromStackSlot!");
   }
   
   /// This function is called for all pseudo instructions

@@ -357,8 +357,7 @@ class SoftBoundCETS: public ModulePass {
 
 
   /* passes related to secure RISC-V*/
-  
-  void RISCV_setupShadowMemoryOffset(Module&);
+  //void RISCV_setupShadowMemoryOffset(Module&);
   
   
   /* Explicit Map manipulation functions */
@@ -1227,18 +1226,6 @@ void SoftBoundCETS::transformMain(Module& module) {
     arg_index++;
   }
 
-  //Kenny insert metadata status register csrw initialization at the beginning of the main function.
-  // move the CSRW initialization for hardware metadata to the __softboundcets_global_init because the metadata store happen before the main function.
-  /*
-  StringRef asmString = "li t0, 0x1\n\tsll t0, t0, 63\n\tadd t0, t0, sp\n\taddi t0, t0, 1024\n\tcsrw 0x800, t0";
-  StringRef constraints = "";
-  SmallVector<Value*, 8> asm_args;
-  llvm::InlineAsm::AsmDialect asmDialect = InlineAsm::AD_ATT;
-  FunctionType *Fty_void = FunctionType::get(Type::getVoidTy(new_func->getContext()), false);
-  llvm::InlineAsm *IA = llvm::InlineAsm::get(Fty_void, asmString, constraints, true, false, asmDialect);
-  CallInst::Create(IA, asm_args, "", dyn_cast<Instruction>(new_func->begin()->begin()));
-  */
-
   //
   // Remove the old function from the module
   //
@@ -1548,6 +1535,10 @@ bool SoftBoundCETS::isFuncDefSoftBound(const std::string &str) {
 // to the corresponding linear mapping shadow memory.
 //
 
+// Once again after developing the HW1.5 RISC-V memory safety, the correct place to initialize the shadow memory
+// offset is at the __softboundcets_init() in softboundcets.c instead the global_init()
+
+/*
 void SoftBoundCETS::RISCV_setupShadowMemoryOffset(Module& module){
   Function* global_init_function = module.getFunction("__softboundcets_global_init");    
   assert(global_init_function && "no __softboundcets_global_init function??");
@@ -1563,6 +1554,7 @@ void SoftBoundCETS::RISCV_setupShadowMemoryOffset(Module& module){
   
   return;
 }
+*/
 
 // 
 // Method: identifyFuncToTrans
@@ -2204,7 +2196,7 @@ void SoftBoundCETS:: introduceShadowStackAllocation(CallInst* call_inst){
 
   SmallVector<Value*, 8> args;
   args.push_back(total_ptr_args);
-  //kenny sha SHA test
+
   CallInst::Create(m_shadow_stack_allocate, args, "", call_inst);
 }
 
@@ -5891,7 +5883,7 @@ bool SoftBoundCETS::runOnModule(Module& module) {
 
   // Enable the shadow memory offset
   // global_init -> init -> stub -> main -> pseudo_main
-  RISCV_setupShadowMemoryOffset(module);
+  //RISCV_setupShadowMemoryOffset(module);
   
   //  DEBUG(errs()<<"Done with SoftBoundCETS\n");
   

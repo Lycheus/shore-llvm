@@ -283,8 +283,10 @@ extern void __softboundcets_init(void);
 
 void __softboundcets_global_init()
 {
+  printf("kenny __softboundcets_global_init start\n");
   __softboundcets_init();
   __softboundcets_stub();
+  printf("kenny __softboundcets_global_init end\n");
 }
 
 //kenny might not be optimal because the __bon basic block can happer quite late in main function, thus we change the hardware enable sequence into softboundcets's TransformMain instrumentation which add the sequence at the beginning of the pseudo_main
@@ -351,7 +353,7 @@ __WEAK_INLINE void* __softboundcets_load_base_shadow_stack(int arg_no){
   size_t count = 2 +  arg_no * __SOFTBOUNDCETS_METADATA_NUM_FIELDS + __BASE_INDEX ;
   size_t* base_ptr = (__softboundcets_shadow_stack_ptr + count); 
   void* base = *((void**)base_ptr);
-  
+
   #ifdef __FUNC_CYCLE
   asm volatile ("rdcycle %0" : "=r" (rdcycle_end));
   lbas_cycle += rdcycle_end - rdcycle_start;
@@ -371,7 +373,6 @@ __WEAK_INLINE void* __softboundcets_load_bound_shadow_stack(int arg_no){
   assert (arg_no >= 0 );
   size_t count = 2 + arg_no * __SOFTBOUNDCETS_METADATA_NUM_FIELDS  + __BOUND_INDEX ;
   size_t* bound_ptr = (__softboundcets_shadow_stack_ptr + count); 
-
   void* bound = *((void**)bound_ptr);
 
   #ifdef __FUNC_CYCLE
@@ -1017,6 +1018,12 @@ __METADATA_INLINE void __softboundcets_metadata_store(void* addr_of_ptr,
   asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
   #endif
 
+  
+#ifdef __HW_SECURITY
+  printf("kenny warning: metadata_store shall be replaced by sbd\n");
+#endif
+  
+
   size_t ptr = (size_t) addr_of_ptr;
   size_t primary_index;
   __softboundcets_trie_entry_t* trie_secondary_table;
@@ -1169,6 +1176,12 @@ __METADATA_INLINE void __softboundcets_metadata_load(void* addr_of_ptr, void** b
   unsigned long rdcycle_start, rdcycle_end;
   asm volatile ("rdcycle %0" : "=r" (rdcycle_start));
   #endif
+
+  
+#ifdef __HW_SECURITY
+  printf("kenny warning: metadata_store shall be replaced by sbd\n");
+#endif
+
   
   size_t ptr = (size_t) addr_of_ptr;
   __softboundcets_trie_entry_t* trie_secondary_table;

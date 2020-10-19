@@ -116,6 +116,18 @@ void __softboundcets_init(void)
     __softboundcets_printf("Initializing softboundcets metadata space\n");
   }
 
+#ifdef __HW_SECURITY
+  //initializing the csrw register for RISC-V to setup the shadow memory offset.
+  printf("kenny: initializing shadow memory offset csrw\n");
+
+  asm volatile("li t0, 0x1\n\tsll t0, t0, 63\n\tadd t0, t0, sp\n\taddi t0, t0, 1024\n\tcsrw 0x800, t0"
+	       :
+	       : 
+	       :
+	       );
+#endif                  
+  
+  printf("kenny _softboundcets_init\n");
   
   assert(sizeof(__softboundcets_trie_entry_t) >= 16);
 
@@ -193,12 +205,27 @@ void __softboundcets_init(void)
 
 static void softboundcets_init_ctype(){  
 #if defined(__linux__)
-
+  
   char* ptr;
   char* base_ptr;
-
+  //printf("init_ctype: __ctype_b_loc() = %x\n", __ctype_b_loc());
+  
   ptr = (void*) __ctype_b_loc();
   base_ptr = (void*) (*(__ctype_b_loc()));
+  
+#ifdef __HW_SECURITY
+  //implenent the ctype initialization in hardware
+  void* k_base = (char*) base_ptr - 129;
+  void* k_bound = (char*) base_ptr + 256;
+  
+  asm volatile("bndr %[container], %[base], %[bound]\n\tsbdl %[container], 0(%[container])\n\tsbdu %[container], 0(%[container])"
+	       : [container]"+r" (ptr)
+	       : [base]"r" (k_base), [bound]"r" (k_bound)
+	       :
+	       );
+  
+#else
+
   __softboundcets_allocation_secondary_trie_allocate(base_ptr);
 
 #ifdef __SOFTBOUNDCETS_SPATIAL
@@ -220,6 +247,7 @@ static void softboundcets_init_ctype(){
   
 #endif
 
+#endif // end of __HW_SECURITY
 #endif // __linux ends 
 }
 
@@ -259,12 +287,29 @@ int main(int argc, char **argv){
 #endif
 
   for(i = 0; i < argc; i++) { 
-
+    
+#ifdef __HW_SECURITY
+    //printf("argv HW init\n");
+    //kenny handle the base/bound for all main's argv
+    void* k_container = &new_argv[i];
+    void* k_base = new_argv[i];
+    void* k_bound = new_argv[i] + strlen(new_argv[i]) + 100; //kenny FIXME, this is only temporate solution!
+    //printf("k_c %p \tk_bas %p \tk_bnd %p\n", k_container, k_base, k_bound);
+    
+    asm volatile("bndr %[container], %[base], %[bound]\n\tsbdl %[container], 0(%[container])\n\tsbdu %[container], 0(%[container])"
+		 : [container]"+r" (k_container)
+		 : [base]"r" (k_base), [bound]"r" (k_bound)
+		 :
+		 );
+    
+#endif //end __HW_SECURITY
+    
 #ifdef __SOFTBOUNDCETS_SPATIAL
-
-    __softboundcets_metadata_store(&new_argv[i], 
-                                   new_argv[i], 
-                                   new_argv[i] + strlen(new_argv[i]) + 1);
+       /* replaced by hardware shadow space
+       __softboundcets_metadata_store(&new_argv[i], 
+       new_argv[i], 
+       new_argv[i] + strlen(new_argv[i]) + 1);
+    */
     
 #elif __SOFTBOUNDCETS_TEMPORAL
     //    printf("performing metadata store\n");
