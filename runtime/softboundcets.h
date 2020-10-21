@@ -283,10 +283,8 @@ extern void __softboundcets_init(void);
 
 void __softboundcets_global_init()
 {
-  printf("kenny __softboundcets_global_init start\n");
   __softboundcets_init();
   __softboundcets_stub();
-  printf("kenny __softboundcets_global_init end\n");
 }
 
 //kenny might not be optimal because the __bon basic block can happer quite late in main function, thus we change the hardware enable sequence into softboundcets's TransformMain instrumentation which add the sequence at the beginning of the pseudo_main

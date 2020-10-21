@@ -118,7 +118,7 @@ void __softboundcets_init(void)
 
 #ifdef __HW_SECURITY
   //initializing the csrw register for RISC-V to setup the shadow memory offset.
-  printf("kenny: initializing shadow memory offset csrw\n");
+  //printf("kenny: initializing shadow memory offset csrw\n");
 
   asm volatile("li t0, 0x1\n\tsll t0, t0, 63\n\tadd t0, t0, sp\n\taddi t0, t0, 1024\n\tcsrw 0x800, t0"
 	       :
@@ -126,8 +126,6 @@ void __softboundcets_init(void)
 	       :
 	       );
 #endif                  
-  
-  printf("kenny _softboundcets_init\n");
   
   assert(sizeof(__softboundcets_trie_entry_t) >= 16);
 
