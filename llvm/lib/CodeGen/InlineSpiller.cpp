@@ -407,7 +407,7 @@ bool InlineSpiller::hoistSpillInsideBB(LiveInterval &SpillLI,
   }
   // Insert spill without kill flag immediately after def.
   TII.storeRegToStackSlot(*MBB, MII, SrcReg, false, StackSlot, MRI.getRegClass(SrcReg), &TRI);
-  TII.storeSRegToStackSlot(*MBB, MII, SrcReg, false, StackSlot, MRI.getRegClass(SrcReg), &TRI); //kenny
+  //TII.storeSRegToStackSlot(*MBB, MII, SrcReg, false, StackSlot, MRI.getRegClass(SrcReg), &TRI); //kenny
   --MII; // Point to store instruction.
   LIS.InsertMachineInstrInMaps(*MII);
   LLVM_DEBUG(dbgs() << "\thoisted: " << SrcVNI->def << '\t' << *MII);
@@ -873,7 +873,7 @@ void InlineSpiller::insertReload(unsigned NewVReg,
 
   MachineInstrSpan MIS(MI);
   TII.loadRegFromStackSlot(MBB, MI, NewVReg, StackSlot, MRI.getRegClass(NewVReg), &TRI);
-  TII.loadSRegFromStackSlot(MBB, MI, NewVReg, StackSlot, MRI.getRegClass(NewVReg), &TRI); //kenny
+  //TII.loadSRegFromStackSlot(MBB, MI, NewVReg, StackSlot, MRI.getRegClass(NewVReg), &TRI); //kenny
 
   LIS.InsertMachineInstrRangeInMaps(MIS.begin(), MI);
 
