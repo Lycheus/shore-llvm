@@ -118,10 +118,20 @@ void __softboundcets_init(void)
   if (__SOFTBOUNDCETS_DEBUG) {
     __softboundcets_printf("Initializing softboundcets metadata space\n");
   }
-
+  
+#ifdef __HW_SECURITY
+  //initializing the csrw register for RISC-V to setup the shadow memory offset.
+  //printf("kenny: initializing shadow memory offset csrw\n");
+  
+  asm volatile("li t0, 0x1\n\tsll t0, t0, 63\n\tadd t0, t0, sp\n\taddi t0, t0, 1024\n\tcsrw 0x800, t0"
+	       :
+	       :
+	       :
+	       );
+#endif
   
   assert(sizeof(__softboundcets_trie_entry_t) >= 16);
-
+  
   /* Allocating the temporal shadow space */
 
   size_t temporal_table_length = (__SOFTBOUNDCETS_N_TEMPORAL_ENTRIES)* sizeof(void*);
@@ -289,11 +299,11 @@ int main(int argc, char **argv){
 
 
 #ifdef __HW_SECURITY
-    printf("argv HW init\n");
+    //printf("argv HW init\n");
     //kenny handle the base/bound for all main's argv
     void* k_container = &new_argv[i];
     void* k_base = new_argv[i];
-    void* k_bound = new_argv[i] + strlen(new_argv[i]) + 1;
+    void* k_bound = new_argv[i] + strlen(new_argv[i]) + 100; //kenny FIXME, this is only temporate solution
     //printf("k_c %p \tk_bas %p \tk_bnd %p\n", k_container, k_base, k_bound);
     
     asm volatile("bndr %[container], %[base], %[bound]\n\tsbdl %[container], 0(%[container])\n\tsbdu %[container], 0(%[container])"
@@ -335,7 +345,7 @@ int main(int argc, char **argv){
 
   }
 
-  printf("before init_ctype\n");
+  //printf("before init_ctype\n");
   softboundcets_init_ctype();
 
   /* Santosh: Real Nasty hack because C programmers assume argv[argc]

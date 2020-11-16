@@ -407,7 +407,7 @@ bool InlineSpiller::hoistSpillInsideBB(LiveInterval &SpillLI,
   }
   // Insert spill without kill flag immediately after def.
   TII.storeRegToStackSlot(*MBB, MII, SrcReg, false, StackSlot, MRI.getRegClass(SrcReg), &TRI);
-  TII.storeSRegToStackSlot(*MBB, MII, SrcReg, false, StackSlot, MRI.getRegClass(SrcReg), &TRI); //kenny
+  //TII.storeSRegToStackSlot(*MBB, MII, SrcReg, false, StackSlot, MRI.getRegClass(SrcReg), &TRI); //kenny
   //printf("kenny InlineSpiller 411\n");
   
   --MII; // Point to store instruction.
@@ -875,7 +875,7 @@ void InlineSpiller::insertReload(unsigned NewVReg,
 
   MachineInstrSpan MIS(MI);
   TII.loadRegFromStackSlot(MBB, MI, NewVReg, StackSlot, MRI.getRegClass(NewVReg), &TRI);
-  TII.loadSRegFromStackSlot(MBB, MI, NewVReg, StackSlot, MRI.getRegClass(NewVReg), &TRI); //kenny
+  //TII.loadSRegFromStackSlot(MBB, MI, NewVReg, StackSlot, MRI.getRegClass(NewVReg), &TRI); //kenny
   //printf("kenny InlineSpiller 879\n");
 
   LIS.InsertMachineInstrRangeInMaps(MIS.begin(), MI);
@@ -917,7 +917,7 @@ void InlineSpiller::insertSpill(unsigned NewVReg, bool isKill,
   } else
     {
       TII.storeRegToStackSlot(MBB, std::next(MI), NewVReg, isKill, StackSlot, MRI.getRegClass(NewVReg), &TRI);
-      TII.storeSRegToStackSlot(MBB, std::next(MI), NewVReg, isKill, StackSlot, MRI.getRegClass(NewVReg), &TRI); //kenny
+      //TII.storeSRegToStackSlot(MBB, std::next(MI), NewVReg, isKill, StackSlot, MRI.getRegClass(NewVReg), &TRI); //kenny
       //printf("kenny InlineSpiller 921\n");
     }
   
@@ -1481,7 +1481,7 @@ void HoistSpillHelper::hoistAllSpills() {
       unsigned LiveReg = Insert.second;
       MachineBasicBlock::iterator MI = IPA.getLastInsertPointIter(OrigLI, *BB);
       TII.storeRegToStackSlot(*BB, MI, LiveReg, false, Slot, MRI.getRegClass(LiveReg), &TRI);
-      TII.storeSRegToStackSlot(*BB, MI, LiveReg, false, Slot, MRI.getRegClass(LiveReg), &TRI); //kenny
+      //TII.storeSRegToStackSlot(*BB, MI, LiveReg, false, Slot, MRI.getRegClass(LiveReg), &TRI); //kenny
       //printf("kenny InlineSpiller 1485\n");
       LIS.InsertMachineInstrRangeInMaps(std::prev(MI), MI);
       ++NumSpills;

@@ -1538,7 +1538,7 @@ bool SoftBoundCETS::isFuncDefSoftBound(const std::string &str) {
 }
 
 //
-// Method: RISCV_setuptShadowMemoryOffset
+// Method: RISCV_setupShadowMemoryOffset
 //
 // Description: This function will insert an inline assembly for RISC-V to setup the csrw status register
 // which give the offset of the starting address of the shadow memory. The offset will be used by the
@@ -5988,7 +5988,7 @@ bool SoftBoundCETS::runOnModule(Module& module) {
 
   //Enable the shadow memory offset
   // global_init -> init -> stub -> main -> pseudo_main
-  RISCV_setupShadowMemoryOffset(module);
+  //RISCV_setupShadowMemoryOffset(module); //move the shadow offset setup to softboundcets.c
   
   //  DEBUG(errs()<<"Done with SoftBoundCETS\n");
   

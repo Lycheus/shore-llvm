@@ -180,6 +180,7 @@ void AsmPrinter::EmitInlineAsm(StringRef Str, const MCSubtargetInfo &STI,
     if(!strncmp(Str.data(), "\tbndr t6,", 8))
       kenny_regnum = 32;
 
+    /*
     if(!strncmp(Str.data(), "\tlbdl a0,", 8))
       kenny_regnum = 11;
     if(!strncmp(Str.data(), "\tlbdl a1,", 8))
@@ -236,6 +237,7 @@ void AsmPrinter::EmitInlineAsm(StringRef Str, const MCSubtargetInfo &STI,
       kenny_regnum = 31;
     if(!strncmp(Str.data(), "\tlbdl t6,", 8))
       kenny_regnum = 32;
+    */
     
   // If the output streamer does not have mature MC support or the integrated
   // assembler has been disabled, just emit the blob textually.

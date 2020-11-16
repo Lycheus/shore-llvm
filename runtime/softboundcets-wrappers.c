@@ -1268,14 +1268,25 @@ __WEAK_INLINE char* softboundcets_gets(char* s){
 __WEAK_INLINE char* softboundcets_fgets(char* s, int size, FILE* stream){
 
   char* ret_ptr = fgets(s, size, stream);
-  
+  // our FPGA hardware dont have lbdls  
 #ifdef __HW_SECURITY
   //void* container;
+  /*
   asm volatile("sbdl %[char_s], 0(%[container])\n\tsbdu %[char_s], 0(%[container])\n\tlbdls %[ret_ptr], 0(%[container])\n\tlbdus %[ret_ptr], 0(%[container])"
 	       : [ret_ptr]"+r" (ret_ptr)
 	       : [container]"r" (&ret_ptr), [char_s]"r" (s)
 	       :
 	       );
+  */
+
+  //kenny FIXME: non-optimal solution has potential security problem.
+  void* base = ret_ptr;
+  void* bound = ret_ptr+size;
+  asm volatile ("bndr %[rd], %[rs1], %[rs2]"
+		: [rd]"+r" (ret_ptr)
+		: [rs1]"r" (base), [rs2]"r" (bound)
+		:
+		);
 #else
 
   printf("kenny warning: fgets\n");
