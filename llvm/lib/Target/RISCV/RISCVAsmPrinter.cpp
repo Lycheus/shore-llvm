@@ -99,7 +99,7 @@ void RISCVAsmPrinter::EmitInstruction(const MachineInstr *MI) {
 	
 	if(match_count >= 2)
 	  {
-	    printf("kenny error: multiple %d load target matched to replace into bounded load\n", match_count);
+	    //printf("kenny error: multiple %d load target matched to replace into bounded load\n", match_count);
 	    OutStreamer->AddComment("kenny multiple load\n");
 	    //BndInst.print(outs());
 	    //outs() << "\n";
@@ -142,7 +142,7 @@ void RISCVAsmPrinter::EmitInstruction(const MachineInstr *MI) {
 	match_count = match_count + 1;
 	if(match_count >= 2)
 	  {
-	    printf("kenny error: multiple %d store target matched to replace into bounded store\n", match_count);
+	    //printf("kenny error: multiple %d store target matched to replace into bounded store\n", match_count);
 	    OutStreamer->AddComment("kenny multiple store\n");
 	    //BndInst.print(outs());
 	    //outs() << "\n";

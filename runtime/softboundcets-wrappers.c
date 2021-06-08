@@ -1059,13 +1059,13 @@ int softboundcets_fchmodat(int dirfd, const char *pathname,
 }
 
 #if defined (__linux__)
-
+/*
 __WEAK_INLINE 
 int softboundcets___xmknodat (int __ver, int __fd, const char *__path,
                               __mode_t __mode, __dev_t *__dev){
  return  __xmknodat(__ver, __fd, __path, __mode, __dev);
 }
-
+*/
 __WEAK_INLINE
 int softboundcets_mkfifoat(int dirfd, const char *pathname, mode_t mode){
   return mkfifoat(dirfd, pathname, mode);
