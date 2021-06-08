@@ -588,13 +588,13 @@ __WEAK_INLINE int softboundcets_fstat(int filedes, struct stat* buff){
 
   return fstat(filedes, buff);
 }
-
+/*
 __WEAK_INLINE int softboundcets___lxstat (int __ver, const char *__filename,     
                                           struct stat *__stat_buf) {
 
   return __lxstat(__ver, __filename, __stat_buf);
 }
-
+*/
 __WEAK_INLINE size_t softboundcets_mbrtowc(wchar_t *pwc, const char *s, 
                                            size_t n, mbstate_t *ps){
   return mbrtowc(pwc, s, n, ps);
@@ -606,7 +606,7 @@ __WEAK_INLINE int softboundcets_mbsinit(const mbstate_t *ps){
 }
 
 
-
+/*
 __WEAK_INLINE int softboundcets___fxstat(int ver, int file_des, struct stat * stat_struct){
   return __fxstat(ver, file_des, stat_struct);
 }
@@ -615,7 +615,7 @@ __WEAK_INLINE int softboundcets___fxstatat(int ver, int file_des, const char* fi
   return __fxstatat(ver, file_des, filename, stat_struct, flag);
 }
 
-
+*/
 __WEAK_INLINE int softboundcets_fflush(FILE* stream){
 
   return fflush(stream);
